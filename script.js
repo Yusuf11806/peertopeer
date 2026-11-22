@@ -338,6 +338,45 @@ async function api(path, options = {}) {
         }
         return { ok: true };
     }
+    if (url.pathname === '/api/mentor/requests' && method === 'GET') {
+        const user = localRequireUser(data);
+        if (!user.isMentor) throw new Error('Only student mentors can view incoming requests.');
+        const requests = data.mentorRequests
+            .filter(request => request.mentorId === user.id)
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .map(request => {
+                const student = data.users.find(item => item.id === request.studentId);
+                return {
+                    ...request,
+                    studentName: student?.profile?.name || 'Student',
+                    studentNim: student?.nim || '',
+                    studentMajor: student?.profile?.major || ''
+                };
+            });
+        return { requests };
+    }
+    if (url.pathname === '/api/mentor/requests/respond' && method === 'POST') {
+        const user = localRequireUser(data);
+        if (!user.isMentor) throw new Error('Only student mentors can respond to requests.');
+        if (!user.nim) throw new Error('Add your NIM before accepting students.');
+        const requestId = Number(body.requestId);
+        const action = String(body.action || '');
+        const request = data.mentorRequests.find(item => item.id === requestId && item.mentorId === user.id);
+        if (!request) throw new Error('Request not found.');
+        if (request.status !== 'pending') throw new Error('This request was already handled.');
+        if (action === 'accept') {
+            request.status = 'accepted';
+            const assignmentIndex = data.assignments.findIndex(item => item.studentId === request.studentId);
+            if (assignmentIndex >= 0) data.assignments[assignmentIndex].mentorId = user.id;
+            else data.assignments.push({ studentId: request.studentId, mentorId: user.id });
+        } else if (action === 'decline') {
+            request.status = 'declined';
+        } else {
+            throw new Error('Choose to accept or decline.');
+        }
+        writeLocalData(data);
+        return { ok: true };
+    }
     if (url.pathname === '/api/admin/users' && method === 'GET') {
         localRequireAdmin(data);
         return { users: data.users.filter(user => !user.isAdmin).map(user => ({
@@ -503,6 +542,7 @@ async function showDashboard() {
         await refreshStudents();
         await refreshDailyUpdates();
         await renderMentorRequestPanel();
+        await renderMentorInbox();
         await renderAdminPanel();
         maybeShowPipToast();
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -924,7 +964,8 @@ async function refreshMentorRequestStatus() {
             label.innerHTML = `<strong>${escapeHTML(request.mentorName)}</strong> — ${escapeHTML(request.subject)}`;
             const status = document.createElement('span');
             status.className = `request-status ${request.status}`;
-            status.textContent = request.status === 'accepted' ? 'Accepted' : 'Pending';
+            status.textContent = request.status === 'accepted' ? 'Accepted'
+                : request.status === 'declined' ? 'Declined' : 'Pending';
             row.append(label, status);
             if (request.status === 'pending') {
                 const cancel = document.createElement('button');
@@ -948,6 +989,77 @@ async function refreshMentorRequestStatus() {
         msg.textContent = error.message;
         container.append(msg);
     }
+}
+
+/* ===== Mentor side: accept / decline incoming requests ===== */
+async function renderMentorInbox() {
+    const panel = document.getElementById('mentorInboxPanel');
+    if (!panel) return;
+    if (!currentUser?.isMentor) {
+        panel.classList.add('is-hidden');
+        return;
+    }
+    panel.classList.remove('is-hidden');
+    const list = document.getElementById('mentorInboxList');
+    list.replaceChildren();
+    try {
+        const { requests } = await api('mentor/requests');
+        const pending = requests.filter(request => request.status === 'pending');
+        const handled = requests.filter(request => request.status !== 'pending');
+        if (!pending.length && !handled.length) {
+            const empty = document.createElement('p');
+            empty.className = 'field-hint';
+            empty.textContent = 'No students have requested you yet.';
+            list.append(empty);
+            return;
+        }
+        pending.forEach(request => {
+            const row = document.createElement('div');
+            row.className = 'mentor-request-row';
+            const label = document.createElement('span');
+            label.innerHTML = `<strong>${escapeHTML(request.studentName)}</strong> wants to learn <strong>${escapeHTML(request.subject)}</strong>${request.studentMajor ? ` · ${escapeHTML(request.studentMajor)}` : ''}`;
+            const accept = document.createElement('button');
+            accept.type = 'button';
+            accept.className = 'mentor-request-btn';
+            accept.textContent = 'Accept';
+            accept.addEventListener('click', () => respondToMentorRequest(request.id, 'accept'));
+            const decline = document.createElement('button');
+            decline.type = 'button';
+            decline.className = 'request-cancel';
+            decline.textContent = 'Decline';
+            decline.addEventListener('click', () => respondToMentorRequest(request.id, 'decline'));
+            row.append(label, accept, decline);
+            list.append(row);
+        });
+        handled.forEach(request => {
+            const row = document.createElement('div');
+            row.className = 'mentor-request-row';
+            const label = document.createElement('span');
+            label.innerHTML = `<strong>${escapeHTML(request.studentName)}</strong> — ${escapeHTML(request.subject)}`;
+            const status = document.createElement('span');
+            status.className = `request-status ${request.status}`;
+            status.textContent = request.status === 'accepted' ? 'Accepted' : 'Declined';
+            row.append(label, status);
+            list.append(row);
+        });
+    } catch (error) {
+        const msg = document.createElement('p');
+        msg.className = 'field-hint';
+        msg.textContent = error.message;
+        list.append(msg);
+    }
+}
+
+async function respondToMentorRequest(requestId, action) {
+    try {
+        await api('mentor/requests/respond', { method: 'POST', body: JSON.stringify({ requestId, action }) });
+        if (action === 'accept') {
+            currentUser = (await api('auth/me')).user;
+            renderAssignedMentor();
+        }
+        await renderMentorInbox();
+        await renderChatInboxIfOpen();
+    } catch (error) { showError(error); }
 }
 
 function fillAccountSelect(select, users, placeholder) {

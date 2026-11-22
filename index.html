@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=pip-premium-1">
+    <link rel="stylesheet" href="style.css?v=pip-premium-2">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
 </head>
@@ -29,6 +29,7 @@
         <nav class="desktop-nav">
             <a href="#" onclick="navigateToSection('how-it-works'); return false;">How It Works</a>
             <a href="#" onclick="navigateToSection('features'); return false;">Features</a>
+            <a href="#" onclick="navigateToSection('pricing'); return false;">Plans</a>
             <a href="#" onclick="navigateToSection('about'); return false;">About</a>
         </nav>
 
@@ -365,6 +366,58 @@
 
                 </div>
 
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="section" id="pricing">
+
+        <div class="section-heading">
+            <span class="section-label">PLANS</span>
+            <h2>Free to start.<br>More with Premium.</h2>
+            <p>Everyone can find study friends and chat with Pip for icebreakers. Premium adds AI study tools and lets you choose your own mentor.</p>
+        </div>
+
+        <div class="pricing-grid">
+
+            <div class="pricing-card">
+                <div class="pricing-card-head">
+                    <span class="pricing-tier">Free</span>
+                    <span class="pricing-price">$0<small>/forever</small></span>
+                </div>
+                <p class="pricing-desc">Everything you need to connect and study together.</p>
+                <ul class="pricing-features">
+                    <li class="yes">Create a student profile</li>
+                    <li class="yes">Smart study-friend matching</li>
+                    <li class="yes">Message peers and your assigned mentor</li>
+                    <li class="yes">Daily college progress updates</li>
+                    <li class="yes">Pip icebreakers to start conversations</li>
+                    <li class="no">AI note summaries</li>
+                    <li class="no">AI-generated quizzes</li>
+                    <li class="no">Request a specific mentor by subject</li>
+                </ul>
+                <button class="secondary-btn pricing-btn" onclick="showAuth('register')">Get started free</button>
+            </div>
+
+            <div class="pricing-card featured">
+                <span class="pricing-ribbon">Most knowledge</span>
+                <div class="pricing-card-head">
+                    <span class="pricing-tier">Premium</span>
+                    <span class="pricing-price">Upgrade<small>anytime</small></span>
+                </div>
+                <p class="pricing-desc">Everything in Free, plus Pip's AI study tools and mentor choice.</p>
+                <ul class="pricing-features">
+                    <li class="yes">Everything in Free</li>
+                    <li class="yes"><strong>Pip summarizes</strong> your notes and material</li>
+                    <li class="yes"><strong>Pip generates quizzes</strong> to test yourself</li>
+                    <li class="yes"><strong>Request a specific mentor</strong> by subject</li>
+                    <li class="yes">Expand your knowledge beyond your assigned mentor</li>
+                    <li class="yes">Priority to grow your peer network</li>
+                </ul>
+                <button class="primary-btn pricing-btn" onclick="showAuth('register')">Go Premium</button>
             </div>
 
         </div>
@@ -812,6 +865,18 @@
                 </div>
             </section>
 
+
+            <section id="mentorInboxPanel" class="mentor-request-panel is-hidden">
+                <div class="assignment-heading">
+                    <div>
+                        <span class="section-label">MENTOR</span>
+                        <h2>Students requesting you</h2>
+                    </div>
+                </div>
+                <p class="field-hint">Students have asked to learn a subject from you. Accept to become their mentor, or decline.</p>
+                <div id="mentorInboxList" class="mentor-request-status"></div>
+            </section>
+
             <section class="daily-updates-panel">
                 <div class="assignment-heading">
                     <div><span class="section-label">DAILY CHECK-IN</span><h2>College progress</h2></div>
@@ -1077,7 +1142,7 @@
 </dialog>
 
 
-<script src="script.js?v=pip-premium-1"></script>
+<script src="script.js?v=pip-premium-2"></script>
 
 </body>
 </html>
