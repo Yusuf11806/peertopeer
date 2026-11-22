@@ -2534,3 +2534,292 @@ html[data-theme="dark"] .support-form textarea {
     width: 100%;
     min-width: 0;
 }
+
+
+/* ===== Social OAuth buttons ===== */
+.social-auth {
+    display: grid;
+    gap: 9px;
+    margin-bottom: 18px;
+}
+
+.social-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: .82rem;
+    font-weight: 700;
+    transition: border-color .18s ease, background-color .18s ease, transform .1s ease;
+}
+
+.social-btn:hover {
+    border-color: var(--primary);
+    background: var(--surface-soft);
+    transform: translateY(-1px);
+}
+
+.social-hint {
+    min-height: 1em;
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: .64rem;
+    text-align: center;
+    line-height: 1.5;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 4px 0 20px;
+    color: #9aa9a3;
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+/* ===== Separate profile page ===== */
+.profile-page-container {
+    max-width: 620px;
+    margin: auto;
+    padding: 45px 28px 70px;
+}
+
+.dashboard-single {
+    grid-template-columns: 1fr !important;
+}
+
+.profile-nav-row {
+    margin-bottom: 18px;
+}
+
+.profile-card .dashboard-avatar img,
+.chat-header-pip,
+.pip-cta img,
+.chat-launcher img {
+    display: block;
+}
+
+/* ===== Plan badges (free / premium) ===== */
+.plan-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 11px;
+    border-radius: 999px;
+    background: #eef2f0;
+    color: #5b6b65;
+    font-size: .64rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.plan-badge.premium {
+    background: linear-gradient(135deg, #f5c451, #e0953f);
+    color: #4a3410;
+    box-shadow: 0 4px 12px rgba(224, 149, 63, .35);
+}
+
+#profilePlanBadge.premium {
+    color: #c98227;
+}
+
+.dashboard-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.pip-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ===== Pip in chat header ===== */
+.chat-widget-heading-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chat-header-pip {
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .25);
+    padding: 2px;
+}
+
+/* ===== Pip chat bubbles ===== */
+.chat-bubble.pip {
+    align-self: flex-start;
+    background: #fff5e6;
+    border: 1px solid #f3d9ad;
+    color: #5a4420;
+    border-bottom-left-radius: 3px;
+}
+
+.pip-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 7px;
+    align-self: flex-start;
+    max-width: 90%;
+}
+
+.pip-row img {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.pip-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.pip-suggestion {
+    text-align: left;
+    padding: 8px 10px;
+    border: 1px solid #f3d9ad;
+    border-radius: 10px;
+    background: #fffdf8;
+    color: #5a4420;
+    font-size: .7rem;
+    font-weight: 600;
+    line-height: 1.4;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.pip-suggestion:hover {
+    background: #fff2dc;
+    border-color: #e0953f;
+}
+
+/* ===== Pip empty-state in chat body ===== */
+.pip-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
+    margin: auto;
+    padding: 12px;
+    text-align: center;
+}
+
+.pip-empty img {
+    width: 56px;
+    height: 56px;
+}
+
+.pip-empty strong {
+    font-size: .8rem;
+    color: var(--text);
+}
+
+.pip-empty p {
+    color: var(--muted);
+    font-size: .68rem;
+    line-height: 1.5;
+    max-width: 230px;
+}
+
+.pip-empty-btn {
+    margin-top: 2px;
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--primary);
+    color: white;
+    font-size: .68rem;
+    font-weight: 800;
+}
+
+/* ===== Pip notification toast ===== */
+.pip-toast {
+    position: fixed;
+    right: 25px;
+    bottom: 90px;
+    z-index: 495;
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    width: min(320px, calc(100vw - 40px));
+    padding: 14px 15px;
+    border: 1px solid #f3d9ad;
+    border-radius: 16px;
+    background: #fffdf8;
+    box-shadow: 0 18px 50px rgba(15, 55, 42, .18);
+    animation: chat-pop .4s ease-out both;
+}
+
+.pip-toast img {
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #fff5e6;
+    padding: 3px;
+}
+
+.pip-toast-body strong {
+    display: block;
+    font-size: .76rem;
+    color: #5a4420;
+}
+
+.pip-toast-body p {
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: .68rem;
+    line-height: 1.45;
+}
+
+.pip-toast-close {
+    border: 0;
+    background: transparent;
+    color: #9aa9a3;
+    font-size: 1.2rem;
+    line-height: 1;
+    padding: 0 2px;
+}
+
+/* ===== Dark theme tweaks for new elements ===== */
+[data-theme="dark"] {
+    --bg: #0e1613;
+    --surface: #15201b;
+    --surface-soft: #1b2822;
+    --text: #e8f1ec;
+    --muted: #9fb3aa;
+    --border: #28362f;
+    --primary-light: #16302350;
+}
+
+[data-theme="dark"] .pip-toast,
+[data-theme="dark"] .chat-bubble.pip,
+[data-theme="dark"] .pip-suggestion {
+    background: #22281c;
+    border-color: #4a3f28;
+    color: #f3e4c6;
+}
+
+[data-theme="dark"] .pip-empty p {
+    color: var(--muted);
+}

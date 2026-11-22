@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Pip the Shiba Inu mascot">
+  <!-- ears -->
+  <path d="M28 40 L18 10 L46 30 Z" fill="#e0953f"/>
+  <path d="M92 40 L102 10 L74 30 Z" fill="#e0953f"/>
+  <path d="M30 34 L24 18 L42 30 Z" fill="#f6ddc4"/>
+  <path d="M90 34 L96 18 L78 30 Z" fill="#f6ddc4"/>
+  <!-- head -->
+  <ellipse cx="60" cy="62" rx="40" ry="36" fill="#e8a94a"/>
+  <!-- cheeks / muzzle (cream) -->
+  <path d="M60 46 C40 46 30 70 36 86 C44 100 76 100 84 86 C90 70 80 46 60 46 Z" fill="#fbead3"/>
+  <ellipse cx="60" cy="74" rx="22" ry="20" fill="#fdf4e8"/>
+  <!-- eyes -->
+  <ellipse cx="46" cy="62" rx="5" ry="6.5" fill="#2b2320"/>
+  <ellipse cx="74" cy="62" rx="5" ry="6.5" fill="#2b2320"/>
+  <circle cx="47.6" cy="59.6" r="1.6" fill="#ffffff"/>
+  <circle cx="75.6" cy="59.6" r="1.6" fill="#ffffff"/>
+  <!-- eyebrows -->
+  <path d="M40 52 q6 -3 12 0" stroke="#c98227" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <path d="M68 52 q6 -3 12 0" stroke="#c98227" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <!-- nose -->
+  <path d="M55 74 h10 l-5 6 Z" fill="#2b2320"/>
+  <!-- mouth -->
+  <path d="M60 80 v4 M60 84 q-6 6 -13 3 M60 84 q6 6 13 3" stroke="#2b2320" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <!-- blush -->
+  <ellipse cx="38" cy="74" rx="5" ry="3.2" fill="#f6b3a0" opacity="0.7"/>
+  <ellipse cx="82" cy="74" rx="5" ry="3.2" fill="#f6b3a0" opacity="0.7"/>
+</svg>

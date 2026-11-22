@@ -1,0 +1,10 @@
+{
+  "name": "peer2peer",
+  "version": "1.0.0",
+  "description": "Peer2Peer - student study-buddy matching app with Pip the Shiba Inu icebreaker assistant.",
+  "private": true,
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "serve": "npx --yes serve -l 8000 ."
+  }
+}
