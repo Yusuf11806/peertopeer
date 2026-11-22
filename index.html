@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=pip-oauth-1">
+    <link rel="stylesheet" href="style.css?v=pip-premium-1">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
 </head>
@@ -618,6 +618,15 @@
                 <button type="button" class="secondary-btn" onclick="showDashboard()">&larr; Back to dashboard</button>
             </div>
 
+            <div class="plan-panel" id="planPanel">
+                <div class="plan-panel-head">
+                    <strong>Subscription</strong>
+                    <span class="plan-badge" id="profilePlanBadge2">Free plan</span>
+                </div>
+                <p class="field-hint">Premium unlocks Pip's study tools: summarize your material and auto-generate quizzes.</p>
+                <button type="button" class="upgrade-btn" onclick="togglePremium()">Upgrade to Premium</button>
+            </div>
+
             <form id="profileForm">
 
                 <div class="form-group">
@@ -720,6 +729,7 @@
 
                 <div class="dashboard-header-actions">
                     <span class="plan-badge" id="dashboardPlanBadge">Free plan</span>
+                    <button type="button" class="upgrade-btn" onclick="togglePremium()">Upgrade to Premium</button>
                     <button type="button" class="secondary-btn" onclick="showProfile()">My Profile</button>
                     <button type="button" class="primary-btn pip-cta" onclick="openPipChat()">
                         <img src="pip.svg" alt="" width="22" height="22"> Ask Pip
@@ -773,6 +783,33 @@
                     <p>Your mentor will appear here after BINUS records an assignment to your account.</p>
                 </div>
 
+            </section>
+
+
+            <section id="mentorRequestPanel" class="mentor-request-panel">
+                <div class="assignment-heading">
+                    <div>
+                        <span class="section-label">PREMIUM</span>
+                        <h2>Request a specific mentor</h2>
+                    </div>
+                    <span class="plan-badge" id="mentorRequestBadge">Premium</span>
+                </div>
+
+                <div id="mentorRequestLocked" class="mentor-request-locked">
+                    <p class="field-hint">Choose a mentor by the subject they teach to expand your knowledge. This is a Premium feature.</p>
+                    <button type="button" class="upgrade-btn" onclick="togglePremium()">Upgrade to Premium</button>
+                </div>
+
+                <div id="mentorRequestTools" class="mentor-request-tools is-hidden">
+                    <p class="field-hint">Filter mentors by the subject you want to learn, then send a request. BINUS reviews and assigns your mentor.</p>
+                    <div class="mentor-request-filters">
+                        <select id="mentorRequestCategory" class="form-control course-category" aria-label="Mentor subject category"></select>
+                        <input id="mentorRequestSubject" class="form-control" placeholder="Search by course name (optional)" aria-label="Search mentors by course">
+                    </div>
+                    <div id="mentorRequestList" class="mentor-request-list"></div>
+                    <h3 class="mentor-request-subhead">Your requests</h3>
+                    <div id="mentorRequestStatus" class="mentor-request-status"></div>
+                </div>
             </section>
 
             <section class="daily-updates-panel">
@@ -1040,7 +1077,7 @@
 </dialog>
 
 
-<script src="script.js?v=mentor-categories-2"></script>
+<script src="script.js?v=pip-premium-1"></script>
 
 </body>
 </html>
