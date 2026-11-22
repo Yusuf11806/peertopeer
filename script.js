@@ -7,6 +7,7 @@ const SUPPORT_EMAIL = 'yusuf.daniel@binus.ac.id';
 const homePage = document.getElementById('homePage');
 const authPage = document.getElementById('authPage');
 const dashboardPage = document.getElementById('dashboardPage');
+const profilePage = document.getElementById('profilePage');
 const authForm = document.getElementById('authForm');
 const profileForm = document.getElementById('profileForm');
 const buddyList = document.getElementById('buddyList');
@@ -301,7 +302,7 @@ function updateHeaderUI() {
 
     chatLauncher?.classList.toggle('is-hidden', !currentUser);
     navActions.innerHTML = currentUser
-        ? '<button class="nav-login" onclick="showDashboard()">Dashboard</button><button class="logout-btn" onclick="handleLogout()">Sign Out</button>'
+        ? '<button class="nav-login" onclick="showDashboard()">Dashboard</button><button class="nav-login" onclick="showProfile()">Profile</button><button class="logout-btn" onclick="handleLogout()">Sign Out</button>'
         : '<button class="nav-login" onclick="showAuth(\'login\')">Sign In</button><button class="nav-cta" onclick="showAuth(\'register\')">Get Started</button>';
     updateThemeToggle();
 }
@@ -330,6 +331,7 @@ function showHome() {
     homePage.style.display = 'block';
     authPage.style.display = 'none';
     dashboardPage.style.display = 'none';
+    profilePage.style.display = 'none';
     updateHeaderUI();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -344,6 +346,7 @@ function showAuth(mode = 'login') {
     homePage.style.display = 'none';
     authPage.style.display = 'block';
     dashboardPage.style.display = 'none';
+    profilePage.style.display = 'none';
     switchAuthMode(mode);
     updateHeaderUI();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -378,14 +381,31 @@ async function showDashboard() {
         if (!currentUser) currentUser = (await api('auth/me')).user;
         homePage.style.display = 'none';
         authPage.style.display = 'none';
+        profilePage.style.display = 'none';
         dashboardPage.style.display = 'block';
         updateHeaderUI();
-        populateProfile(currentUser);
         renderAssignedMentor();
-        updateMatrixUI();
         await refreshStudents();
         await refreshDailyUpdates();
         await renderAdminPanel();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+        currentUser = null;
+        showHome();
+        showError(error);
+    }
+}
+
+async function showProfile() {
+    try {
+        if (!currentUser) currentUser = (await api('auth/me')).user;
+        homePage.style.display = 'none';
+        authPage.style.display = 'none';
+        dashboardPage.style.display = 'none';
+        profilePage.style.display = 'block';
+        updateHeaderUI();
+        populateProfile(currentUser);
+        updateMatrixUI();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
         currentUser = null;
