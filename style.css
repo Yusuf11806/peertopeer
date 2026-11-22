@@ -1016,12 +1016,18 @@ textarea.form-control {
     margin: auto;
 
     padding: 45px 28px 70px;
+}
 
-    display: grid;
+.profile-page-container {
+    max-width: 640px;
 
-    grid-template-columns: 340px 1fr;
+    margin: auto;
 
-    gap: 35px;
+    padding: 45px 28px 70px;
+}
+
+.profile-page-container .profile-card {
+    width: 100%;
 }
 
 .card {
@@ -2365,10 +2371,6 @@ html[data-theme="dark"] .support-form textarea {
 
     .auth-page {
         gap: 45px;
-    }
-
-    .dashboard-container {
-        grid-template-columns: 1fr;
     }
 
     .profile-card {
