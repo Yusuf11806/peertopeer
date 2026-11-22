@@ -3,9 +3,20 @@ let currentUser = null;
 let profileSelectedSchedule = [];
 let activeChatPeerId = null;
 
+/* ===== OAuth configuration =====
+   Replace these placeholders with your real client IDs.
+   - Google: Google Cloud Console > APIs & Services > Credentials > OAuth client ID (Web).
+     Add your origin (e.g. http://localhost:8000 and your Vercel URL) to "Authorized JavaScript origins".
+   - Microsoft: Azure Portal > App registrations > your app > Application (client) ID.
+     Add the same origins as SPA redirect URIs.
+   OAuth only works over http://localhost or HTTPS, not when opening the file directly. */
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+const MICROSOFT_CLIENT_ID = 'YOUR_MICROSOFT_CLIENT_ID';
+
 const SUPPORT_EMAIL = 'yusuf.daniel@binus.ac.id';
 const homePage = document.getElementById('homePage');
 const authPage = document.getElementById('authPage');
+const profilePage = document.getElementById('profilePage');
 const dashboardPage = document.getElementById('dashboardPage');
 const authForm = document.getElementById('authForm');
 const profileForm = document.getElementById('profileForm');
@@ -112,6 +123,7 @@ function localPublicUser(user, data = readLocalData(), includeAssignedMentor = t
     return {
         id: user.id, email: user.email, nim: user.nim,
         isMentor: Boolean(user.isMentor), isAdmin: Boolean(user.isAdmin),
+        plan: user.plan === 'premium' ? 'premium' : 'free',
         mentorCourses: Array.isArray(user.mentorCourses) ? user.mentorCourses : [],
         hasProfile: Boolean(user.hasProfile), profile: user.profile || null,
         assignedMentor: includeAssignedMentor && assignment
@@ -176,14 +188,12 @@ async function api(path, options = {}) {
         if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) throw new Error('Password must be at least 8 characters and include an uppercase letter and a number.');
         if (data.users.some(user => user.email === email || user.nim === nim)) throw new Error('That email or NIM is already registered.');
         const passwordData = await hashLocalPassword(password);
-        const asMentor = Boolean(body.isMentor);
-        const mentorCourses = Array.isArray(body.mentorCourses) ? body.mentorCourses : [];
-        if (asMentor && (!mentorCourses.length || mentorCourses.some(item => !String(item.course || '').trim() || !String(item.grade || '').trim()))) throw new Error('Add at least one course and your grade in it to sign up as a mentor.');
         const user = {
             id: Date.now() + Math.floor(Math.random() * 1000), email, nim,
             passwordSalt: passwordData.salt, passwordHash: passwordData.hash,
-            isMentor: asMentor, mentorCourses: asMentor ? mentorCourses : [],
-            isAdmin: email === LOCAL_ADMIN_EMAIL, hasProfile: false, profile: null
+            isMentor: false, mentorCourses: [],
+            isAdmin: email === LOCAL_ADMIN_EMAIL, plan: 'free',
+            hasProfile: false, profile: null
         };
         data.users.push(user);
         writeLocalData(data);
@@ -195,6 +205,25 @@ async function api(path, options = {}) {
         const user = data.users.find(item => item.email === email);
         const passwordData = user ? await hashLocalPassword(String(body.password || ''), user.passwordSalt) : null;
         if (!user || passwordData.hash !== user.passwordHash) throw new Error('Invalid email or password.');
+        localStorage.setItem(LOCAL_SESSION_KEY, String(user.id));
+        return { user: localPublicUser(user, data) };
+    }
+    if (url.pathname === '/api/auth/oauth' && method === 'POST') {
+        const email = String(body.email || '').trim().toLowerCase();
+        const provider = String(body.provider || 'oauth');
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('The provider did not return a valid email.');
+        let user = data.users.find(item => item.email === email);
+        if (!user) {
+            user = {
+                id: Date.now() + Math.floor(Math.random() * 1000), email,
+                nim: '', passwordSalt: null, passwordHash: null,
+                isMentor: false, mentorCourses: [],
+                isAdmin: email === LOCAL_ADMIN_EMAIL, plan: 'free',
+                provider, hasProfile: false, profile: null
+            };
+            data.users.push(user);
+            writeLocalData(data);
+        }
         localStorage.setItem(LOCAL_SESSION_KEY, String(user.id));
         return { user: localPublicUser(user, data) };
     }
@@ -301,7 +330,7 @@ function updateHeaderUI() {
 
     chatLauncher?.classList.toggle('is-hidden', !currentUser);
     navActions.innerHTML = currentUser
-        ? '<button class="nav-login" onclick="showDashboard()">Dashboard</button><button class="logout-btn" onclick="handleLogout()">Sign Out</button>'
+        ? '<button class="nav-login" onclick="showDashboard()">Dashboard</button><button class="nav-login" onclick="showProfile()">My Profile</button><button class="logout-btn" onclick="handleLogout()">Sign Out</button>'
         : '<button class="nav-login" onclick="showAuth(\'login\')">Sign In</button><button class="nav-cta" onclick="showAuth(\'register\')">Get Started</button>';
     updateThemeToggle();
 }
@@ -329,6 +358,7 @@ function showHome() {
     closeChatWidget();
     homePage.style.display = 'block';
     authPage.style.display = 'none';
+    profilePage.style.display = 'none';
     dashboardPage.style.display = 'none';
     updateHeaderUI();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -343,6 +373,7 @@ function showAuth(mode = 'login') {
     currentAuthMode = mode;
     homePage.style.display = 'none';
     authPage.style.display = 'block';
+    profilePage.style.display = 'none';
     dashboardPage.style.display = 'none';
     switchAuthMode(mode);
     updateHeaderUI();
@@ -360,10 +391,9 @@ function switchAuthMode(mode) {
         ? 'Create an account and start finding your peers.'
         : 'Sign in to access your peer network.';
     document.querySelectorAll('.signup-only').forEach(field => field.classList.toggle('is-hidden', !registering));
-    document.getElementById('authAsMentor').checked = false;
-    document.getElementById('mentorCoursesBlock').classList.add('is-hidden');
-    document.getElementById('mentorCourseRows').replaceChildren();
     document.getElementById('authNim').required = registering;
+    const hint = document.getElementById('socialHint');
+    if (hint) hint.textContent = '';
 
     const card = document.querySelector('.auth-card');
     if (card) {
@@ -378,19 +408,56 @@ async function showDashboard() {
         if (!currentUser) currentUser = (await api('auth/me')).user;
         homePage.style.display = 'none';
         authPage.style.display = 'none';
+        profilePage.style.display = 'none';
         dashboardPage.style.display = 'block';
         updateHeaderUI();
+        updatePlanBadges();
         populateProfile(currentUser);
         renderAssignedMentor();
         updateMatrixUI();
         await refreshStudents();
         await refreshDailyUpdates();
         await renderAdminPanel();
+        maybeShowPipToast();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
         currentUser = null;
         showHome();
         showError(error);
+    }
+}
+
+async function showProfile() {
+    try {
+        if (!currentUser) currentUser = (await api('auth/me')).user;
+        homePage.style.display = 'none';
+        authPage.style.display = 'none';
+        dashboardPage.style.display = 'none';
+        profilePage.style.display = 'block';
+        updateHeaderUI();
+        updatePlanBadges();
+        populateProfile(currentUser);
+        updateMatrixUI();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+        currentUser = null;
+        showHome();
+        showError(error);
+    }
+}
+
+function updatePlanBadges() {
+    const premium = currentUser?.plan === 'premium';
+    const label = premium ? 'Premium plan' : 'Free plan';
+    const dash = document.getElementById('dashboardPlanBadge');
+    if (dash) {
+        dash.textContent = label;
+        dash.classList.toggle('premium', premium);
+    }
+    const prof = document.getElementById('profilePlanBadge');
+    if (prof) {
+        prof.textContent = premium ? 'PREMIUM PLAN' : 'FREE PLAN';
+        prof.classList.toggle('premium', premium);
     }
 }
 
@@ -678,17 +745,212 @@ async function renderAdminPanel() {
 }
 
 async function openChatWidget(peerId, peerName) {
+    pipMode = false;
+    setChatHeaderPip(false);
     activeChatPeerId = Number(peerId);
     chatWidgetTargetName.textContent = peerName;
     chatBackButton.classList.remove('is-hidden');
     chatWidgetForm.hidden = false;
+    chatWidgetInput.placeholder = 'Write a message...';
     chatWidget.style.display = 'flex';
     await loadChatMessages();
 }
 
 function closeChatWidget() {
     activeChatPeerId = null;
+    pipMode = false;
+    setChatHeaderPip(false);
     chatWidget.style.display = 'none';
+}
+
+/* ===== Pip: the Shiba Inu icebreaker assistant ===== */
+let pipMode = false;
+let pipToastTimer = null;
+
+const PIP_ICEBREAKERS = {
+    'Computing / IT': [
+        'What project or app first got you excited about coding?',
+        'Which language do you reach for first, and why?',
+        'Are you more of a frontend, backend, or "break everything" person?',
+        'What is one bug that taught you a lot?'
+    ],
+    'Business': [
+        'If you launched a startup tomorrow, what would it be?',
+        'Which company do you think has the smartest strategy right now?',
+        'Do you prefer marketing, finance, or operations?',
+        'What is a business idea you wish existed?'
+    ],
+    'Design / Arts': [
+        'Whose design work or art style inspires you most?',
+        'Do you sketch on paper or go straight to digital?',
+        'What is a color palette you keep coming back to?',
+        'Which app has UI you genuinely love?'
+    ],
+    'Engineering': [
+        'What is a structure or machine you find fascinating?',
+        'Do you enjoy the theory or the hands-on build more?',
+        'What is the trickiest problem set you have survived?',
+        'Which engineering field would you switch into for a week?'
+    ],
+    'Humanities': [
+        'What book or idea recently changed how you think?',
+        'Which historical moment would you want to witness?',
+        'Do you prefer writing essays or debating out loud?',
+        'What topic could you talk about for an hour?'
+    ],
+    'Hospitality': [
+        'What is the best meal or service experience you have had?',
+        'Front office, kitchen, or events — where do you shine?',
+        'What dish would you cook to impress someone?',
+        'Which city has hospitality you admire?'
+    ],
+    'General / Other': [
+        'What are you hoping to get out of a study partner?',
+        'Morning study or late-night grind?',
+        'What subject do you secretly enjoy the most?',
+        'What is one goal you have this semester?'
+    ]
+};
+
+function pipIcebreakersFor(subject) {
+    const category = subject ? categoryForCourse(subject) : (currentUser?.profile?.subject ? categoryForCourse(currentUser.profile.subject) : 'General / Other');
+    const bank = PIP_ICEBREAKERS[category] || PIP_ICEBREAKERS['General / Other'];
+    return { category, questions: bank };
+}
+
+function pipPick(subject) {
+    const { questions } = pipIcebreakersFor(subject);
+    return questions[Math.floor(Math.random() * questions.length)];
+}
+
+function appendPipBubble(text, suggestions = []) {
+    const row = document.createElement('div');
+    row.className = 'pip-row';
+    const avatar = document.createElement('img');
+    avatar.src = 'pip.svg';
+    avatar.alt = 'Pip';
+    const column = document.createElement('div');
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble pip';
+    bubble.textContent = text;
+    column.append(bubble);
+    if (suggestions.length) {
+        const wrap = document.createElement('div');
+        wrap.className = 'pip-suggestions';
+        suggestions.forEach(question => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'pip-suggestion';
+            chip.textContent = question;
+            chip.addEventListener('click', () => usePipSuggestion(question));
+            wrap.append(chip);
+        });
+        column.append(wrap);
+    }
+    row.append(avatar, column);
+    chatWidgetBody.append(row);
+    chatWidgetBody.scrollTop = chatWidgetBody.scrollHeight;
+}
+
+function usePipSuggestion(question) {
+    if (pipMode) {
+        appendUserBubble(question);
+        window.setTimeout(() => {
+            appendPipBubble('Great pick! Send that to a study friend to break the ice. Want another one?', [pipPick()]);
+        }, 350);
+        return;
+    }
+    // In a real conversation: drop the icebreaker into the message box, ready to send.
+    chatWidgetInput.value = question;
+    chatWidgetInput.focus();
+}
+
+function appendUserBubble(text) {
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble sent';
+    bubble.textContent = text;
+    chatWidgetBody.append(bubble);
+    chatWidgetBody.scrollTop = chatWidgetBody.scrollHeight;
+}
+
+function setChatHeaderPip(on) {
+    const pip = document.getElementById('chatHeaderPip');
+    if (pip) pip.hidden = !on;
+}
+
+function openPipChat() {
+    if (!currentUser) { showAuth('login'); return; }
+    dismissPipToast();
+    pipMode = true;
+    activeChatPeerId = null;
+    setChatHeaderPip(true);
+    chatWidgetTargetName.textContent = 'Pip — icebreaker buddy';
+    chatBackButton.classList.remove('is-hidden');
+    chatWidgetForm.hidden = false;
+    chatWidgetInput.placeholder = 'Ask Pip for an icebreaker...';
+    chatWidget.style.display = 'flex';
+    chatWidgetBody.replaceChildren();
+    const { category, questions } = pipIcebreakersFor();
+    appendPipBubble(`Woof! I'm Pip. I only do one thing: help you break the ice. Here are a few openers for ${category}. Tap one to copy it, or type "more" for others.`, questions.slice(0, 3));
+}
+
+function renderPipEmptyState() {
+    chatWidgetBody.replaceChildren();
+    const wrap = document.createElement('div');
+    wrap.className = 'pip-empty';
+    const img = document.createElement('img');
+    img.src = 'pip.svg';
+    img.alt = 'Pip';
+    const title = document.createElement('strong');
+    title.textContent = 'No messages yet';
+    const text = document.createElement('p');
+    text.textContent = 'Pip here! This chat is empty. Want an icebreaker to get it started?';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'pip-empty-btn';
+    button.textContent = 'Give me an icebreaker';
+    button.addEventListener('click', () => {
+        const subject = currentUser?.profile?.subject;
+        appendPipBubble(pipPick(subject), [pipPick(subject), pipPick(subject)]);
+    });
+    wrap.append(img, title, text, button);
+    chatWidgetBody.append(wrap);
+}
+
+/* Pip as a notification toast */
+function notifyPip(text) {
+    const toast = document.getElementById('pipToast');
+    const body = document.getElementById('pipToastText');
+    if (!toast || !body) return;
+    body.textContent = text;
+    toast.classList.remove('is-hidden');
+    window.clearTimeout(pipToastTimer);
+    pipToastTimer = window.setTimeout(dismissPipToast, 9000);
+    toast.onclick = event => {
+        if (event.target.closest('.pip-toast-close')) return;
+        dismissPipToast();
+        openPipChat();
+    };
+}
+
+function dismissPipToast() {
+    const toast = document.getElementById('pipToast');
+    if (toast) toast.classList.add('is-hidden');
+    window.clearTimeout(pipToastTimer);
+}
+
+function maybeShowPipToast() {
+    if (!currentUser) return;
+    const key = `p2p_pip_seen_${currentUser.id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+    window.setTimeout(() => {
+        if (!currentUser.hasProfile) {
+            notifyPip('Finish your profile and I can suggest icebreakers tuned to your course!');
+        } else {
+            notifyPip(`Hi ${currentUser.profile?.name?.split(' ')[0] || 'there'}! Need an icebreaker to message a study friend? Tap me.`);
+        }
+    }, 1500);
 }
 
 function toggleChatInbox() {
@@ -743,10 +1005,8 @@ async function loadChatMessages() {
     try {
         const { messages } = await api(`chat/messages?peerId=${encodeURIComponent(activeChatPeerId)}`);
         if (!messages.length) {
-            const empty = document.createElement('div');
-            empty.className = 'chat-empty';
-            empty.textContent = 'Start the conversation with your peer.';
-            chatWidgetBody.append(empty);
+            renderPipEmptyState();
+            return;
         }
         messages.forEach(message => {
             const bubble = document.createElement('div');
@@ -774,6 +1034,83 @@ function closeSupportForm() {
     document.getElementById('supportDialog')?.close();
 }
 
+/* ===== Google / Microsoft OAuth (Option A, real client-side OAuth) ===== */
+function setSocialHint(text) {
+    const hint = document.getElementById('socialHint');
+    if (hint) hint.textContent = text || '';
+}
+
+function decodeJwtPayload(token) {
+    const part = token.split('.')[1];
+    const json = atob(part.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(decodeURIComponent(escape(json)));
+}
+
+async function finishOAuth(email, provider) {
+    const { user } = await api('auth/oauth', { method: 'POST', body: JSON.stringify({ email, provider }) });
+    currentUser = user;
+    setSocialHint('');
+    if (!user.hasProfile) {
+        notifyPip(`Welcome, ${user.email.split('@')[0]}! Finish your profile so peers can find you.`);
+        await showProfile();
+    } else {
+        await showDashboard();
+    }
+}
+
+function signInWithGoogle() {
+    if (GOOGLE_CLIENT_ID.startsWith('YOUR_')) {
+        setSocialHint('Google sign-in needs a client ID. Add yours to GOOGLE_CLIENT_ID in script.js (see the comment there).');
+        return;
+    }
+    if (!window.google?.accounts?.id) {
+        setSocialHint('Google sign-in is still loading or blocked. Check your connection and that you are on http://localhost or HTTPS.');
+        return;
+    }
+    window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async response => {
+            try {
+                const payload = decodeJwtPayload(response.credential);
+                if (!payload.email_verified) throw new Error('Your Google email is not verified.');
+                await finishOAuth(payload.email, 'google');
+            } catch (error) { showError(error); }
+        }
+    });
+    window.google.accounts.id.prompt(notification => {
+        if (notification.isNotDisplayed?.() || notification.isSkippedMoment?.()) {
+            setSocialHint('Google did not show the sign-in prompt. Make sure this origin is an authorized JavaScript origin for your client ID.');
+        }
+    });
+}
+
+let msalInstance = null;
+async function signInWithMicrosoft() {
+    if (MICROSOFT_CLIENT_ID.startsWith('YOUR_')) {
+        setSocialHint('Microsoft sign-in needs a client ID. Add yours to MICROSOFT_CLIENT_ID in script.js (see the comment there).');
+        return;
+    }
+    if (!window.msal) {
+        setSocialHint('Microsoft sign-in is still loading or blocked. Check your connection and that you are on http://localhost or HTTPS.');
+        return;
+    }
+    try {
+        if (!msalInstance) {
+            msalInstance = new window.msal.PublicClientApplication({
+                auth: { clientId: MICROSOFT_CLIENT_ID, authority: 'https://login.microsoftonline.com/common', redirectUri: window.location.origin },
+                cache: { cacheLocation: 'sessionStorage' }
+            });
+            if (msalInstance.initialize) await msalInstance.initialize();
+        }
+        const result = await msalInstance.loginPopup({ scopes: ['openid', 'email', 'profile'] });
+        const email = result.account?.username || result.idTokenClaims?.email || result.idTokenClaims?.preferred_username;
+        if (!email) throw new Error('Microsoft did not return an email address.');
+        await finishOAuth(email, 'microsoft');
+    } catch (error) {
+        setSocialHint(error.message || 'Microsoft sign-in was cancelled.');
+    }
+}
+
 authForm.addEventListener('submit', async event => {
     event.preventDefault();
     const email = document.getElementById('authEmail').value.trim().toLowerCase();
@@ -781,11 +1118,6 @@ authForm.addEventListener('submit', async event => {
     const payload = { email, password };
     if (currentAuthMode === 'register') {
         payload.nim = document.getElementById('authNim').value.trim();
-        payload.isMentor = document.getElementById('authAsMentor').checked;
-        payload.mentorCourses = [...document.querySelectorAll('.mentor-course-row')].map(row => ({
-            course: row.querySelector('.mentor-course').value,
-            grade: row.querySelector('.mentor-grade').value
-        }));
     }
 
     try {
@@ -793,18 +1125,16 @@ authForm.addEventListener('submit', async event => {
             method: 'POST', body: JSON.stringify(payload)
         });
         currentUser = user;
-        await showDashboard();
+        if (!user.hasProfile) {
+            notifyPip('Nice to meet you! Complete your profile so peers can find you.');
+            await showProfile();
+        } else {
+            await showDashboard();
+        }
     } catch (error) {
         showError(error);
     }
 });
-
-document.getElementById('authAsMentor').addEventListener('change', event => {
-    const block = document.getElementById('mentorCoursesBlock');
-    block.classList.toggle('is-hidden', !event.target.checked);
-    if (event.target.checked && !document.querySelector('.mentor-course-row')) addMentorCourseRow();
-});
-document.getElementById('addMentorCourse').addEventListener('click', () => addMentorCourseRow());
 
 document.getElementById('dailyUpdateForm').addEventListener('submit', async event => {
     event.preventDefault();
@@ -906,7 +1236,16 @@ filterSubject.addEventListener('change', () => refreshStudents().catch(showError
 chatWidgetForm.addEventListener('submit', async event => {
     event.preventDefault();
     const message = chatWidgetInput.value.trim();
-    if (!message || !activeChatPeerId) return;
+    if (!message) return;
+
+    if (pipMode) {
+        appendUserBubble(message);
+        chatWidgetInput.value = '';
+        window.setTimeout(() => respondAsPip(message), 350);
+        return;
+    }
+
+    if (!activeChatPeerId) return;
     try {
         await api('chat/messages', {
             method: 'POST', body: JSON.stringify({ peerId: activeChatPeerId, message })
@@ -915,6 +1254,26 @@ chatWidgetForm.addEventListener('submit', async event => {
         await loadChatMessages();
     } catch (error) { showError(error); }
 });
+
+function respondAsPip(message) {
+    const text = message.toLowerCase();
+    const subject = currentUser?.profile?.subject;
+    if (/more|another|again|next|yes|yeah|sure|ok/.test(text)) {
+        appendPipBubble('Here you go:', [pipPick(subject), pipPick(subject)]);
+        return;
+    }
+    if (/thank|thanks|cool|nice|great/.test(text)) {
+        appendPipBubble('Anytime! Go say hi to a study friend. Want one more opener?', [pipPick(subject)]);
+        return;
+    }
+    if (/who|what are you|help|hi|hello|hey/.test(text)) {
+        appendPipBubble("I'm Pip, your Shiba icebreaker buddy. I only hand out conversation starters so you can message peers with confidence. Try me:", [pipPick(subject), pipPick(subject)]);
+        return;
+    }
+    // Default: treat their message as a topic and offer openers for it.
+    const { category } = pipIcebreakersFor(message);
+    appendPipBubble(`Good topic! Here are a couple of ${category} openers you could send:`, [pipPick(message), pipPick(message)]);
+}
 
 document.getElementById('supportForm')?.addEventListener('submit', event => {
     event.preventDefault();
