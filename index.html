@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=pip-premium-2">
+    <link rel="stylesheet" href="style.css?v=ui-simplify-1">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
 </head>
@@ -693,14 +693,14 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="profSubject">Core Objective</label>
+                    <label for="profSubject">Main subject</label>
                     <select id="profCourseCategory" class="form-control course-category" required aria-label="Course category"></select>
                     <input id="profSubject" class="form-control" list="profileCourseOptions" required placeholder="Choose a category first" disabled>
-                    <small class="field-hint">You can type any course from your program. <a href="https://curriculum.binus.ac.id/" target="_blank" rel="noopener noreferrer">Browse the official BINUS course catalog</a>.</small>
+                    <small class="field-hint">Pick a category, then your course. <a href="https://curriculum.binus.ac.id/" target="_blank" rel="noopener noreferrer">BINUS course catalog</a>.</small>
                 </div>
 
                 <div class="form-group">
-                    <label for="profSkill">Top Expertise</label>
+                    <label for="profSkill">Your strengths</label>
                     <input type="text" id="profSkill" class="form-control" required placeholder="e.g. Java, UI Design">
                 </div>
 
@@ -723,7 +723,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="profBio">About &amp; Context</label>
+                    <label for="profBio">About you</label>
                     <textarea id="profBio" class="form-control" rows="3" required placeholder="Tell peers what you want to learn..."></textarea>
                 </div>
 
@@ -766,16 +766,12 @@
 
                 <div>
 
-                    <span class="section-label">
-                        STUDY BUDDY NETWORK
-                    </span>
-
                     <h1>
-                        Find a study friend.
+                        Find a study friend
                     </h1>
 
                     <p>
-                        Your BINUS mentor is also a student. Find other students to study with in the list below.
+                        Students who complete a profile appear below. Your BINUS mentor is shown first.
                     </p>
 
                 </div>
@@ -795,7 +791,6 @@
             <section id="adminPanel" class="admin-panel is-hidden">
                 <div class="admin-panel-heading">
                     <div>
-                        <span class="section-label">BINUS ADMIN</span>
                         <h2>Mentor assignments</h2>
                     </div>
                     <p>Designate student mentors, then assign one to a student.</p>
@@ -826,8 +821,7 @@
 
                 <div class="assignment-heading">
                     <div>
-                        <span class="section-label">BINUS SUPPORT</span>
-                        <h2>Your BINUS-assigned student mentor</h2>
+                        <h2>Your student mentor</h2>
                     </div>
                     <span class="assignment-status" id="assignedMentorStatus">Not assigned yet</span>
                 </div>
@@ -842,7 +836,6 @@
             <section id="mentorRequestPanel" class="mentor-request-panel">
                 <div class="assignment-heading">
                     <div>
-                        <span class="section-label">PREMIUM</span>
                         <h2>Request a specific mentor</h2>
                     </div>
                     <span class="plan-badge" id="mentorRequestBadge">Premium</span>
@@ -869,7 +862,6 @@
             <section id="mentorInboxPanel" class="mentor-request-panel is-hidden">
                 <div class="assignment-heading">
                     <div>
-                        <span class="section-label">MENTOR</span>
                         <h2>Students requesting you</h2>
                     </div>
                 </div>
@@ -879,7 +871,7 @@
 
             <section class="daily-updates-panel">
                 <div class="assignment-heading">
-                    <div><span class="section-label">DAILY CHECK-IN</span><h2>College progress</h2></div>
+                    <div><h2>Daily progress</h2></div>
                 </div>
                 <p class="field-hint">Share what you worked on today with your assigned mentor. Add a photo of your notes or coursework.</p>
                 <form id="dailyUpdateForm" class="daily-update-form">
@@ -1142,7 +1134,7 @@
 </dialog>
 
 
-<script src="script.js?v=pip-premium-2"></script>
+<script src="script.js?v=ui-simplify-1"></script>
 
 </body>
 </html>
