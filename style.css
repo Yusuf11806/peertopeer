@@ -2823,3 +2823,805 @@ html[data-theme="dark"] .support-form textarea {
 [data-theme="dark"] .pip-empty p {
     color: var(--muted);
 }
+
+
+/* ===== Premium: upgrade button + plan panel ===== */
+.upgrade-btn {
+    padding: 11px 16px;
+    border: 1px solid #e0953f;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f5c451, #e0953f);
+    color: #4a3410;
+    font-size: .82rem;
+    font-weight: 800;
+    transition: transform .1s ease, box-shadow .18s ease;
+}
+
+.upgrade-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(224, 149, 63, .3);
+}
+
+.upgrade-btn.is-premium {
+    background: var(--surface);
+    color: var(--muted);
+    border-color: var(--border);
+}
+
+.plan-panel {
+    margin-bottom: 20px;
+    padding: 16px;
+    border: 1px solid #f3d9ad;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #fffaf0, var(--surface) 80%);
+}
+
+.plan-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.plan-panel-head strong {
+    font-size: .9rem;
+}
+
+.plan-panel .field-hint {
+    margin-bottom: 12px;
+    color: var(--muted);
+    font-size: .72rem;
+    line-height: 1.5;
+}
+
+/* ===== Premium Pip: study tools ===== */
+.pip-study-tool {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 10px;
+    border: 1px solid #f3d9ad;
+    border-radius: 12px;
+    background: #fffdf8;
+}
+
+.pip-study-input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 9px;
+    font-size: .72rem;
+    line-height: 1.5;
+    resize: vertical;
+    outline: none;
+    background: var(--surface);
+    color: var(--text);
+}
+
+.pip-study-input:focus {
+    border-color: #e0953f;
+}
+
+.pip-study-file {
+    display: block;
+    color: var(--muted);
+    font-size: .64rem;
+    font-weight: 700;
+}
+
+.pip-study-file input {
+    display: block;
+    margin-top: 4px;
+    font-size: .64rem;
+    color: var(--muted);
+}
+
+.pip-study-actions {
+    display: flex;
+    gap: 7px;
+}
+
+.pip-study-btn {
+    flex: 1;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: 9px;
+    background: var(--primary);
+    color: white;
+    font-size: .7rem;
+    font-weight: 800;
+    transition: background-color .15s ease;
+}
+
+.pip-study-btn:hover {
+    background: var(--primary-dark);
+}
+
+.pip-study-btn.alt {
+    background: #e0953f;
+}
+
+.pip-study-btn.alt:hover {
+    background: #c57f2e;
+}
+
+/* summary output */
+.pip-summary {
+    margin: 6px 0 0;
+    padding: 10px 12px 10px 26px;
+    border: 1px solid #f3d9ad;
+    border-radius: 11px;
+    background: #fffdf8;
+    color: #5a4420;
+    font-size: .72rem;
+    line-height: 1.55;
+}
+
+.pip-summary li {
+    margin-bottom: 5px;
+}
+
+.pip-terms {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: .64rem;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+/* quiz */
+.pip-quiz {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    margin-top: 6px;
+    padding: 11px;
+    border: 1px solid #f3d9ad;
+    border-radius: 12px;
+    background: #fffdf8;
+}
+
+.pip-quiz-q {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 10px;
+    margin: 0;
+}
+
+.pip-quiz-q legend {
+    padding: 0 4px;
+    font-size: .7rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.45;
+}
+
+.pip-quiz-q.right {
+    border-color: #4caf7d;
+    background: #effaf2;
+}
+
+.pip-quiz-q.wrong {
+    border-color: #e07a7a;
+    background: #fdf0f0;
+}
+
+.pip-quiz-answer {
+    color: #b45454;
+    font-weight: 800;
+}
+
+.pip-quiz-opt {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 2px;
+    font-size: .7rem;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.pip-quiz-result {
+    margin: 2px 0 0;
+    font-size: .78rem;
+    font-weight: 800;
+    color: var(--primary-dark);
+}
+
+[data-theme="dark"] .pip-study-tool,
+[data-theme="dark"] .pip-study-input,
+[data-theme="dark"] .pip-summary,
+[data-theme="dark"] .pip-quiz,
+[data-theme="dark"] .plan-panel {
+    background: #22281c;
+    border-color: #4a3f28;
+    color: #f3e4c6;
+}
+
+
+/* ===== Premium: request a specific mentor ===== */
+.mentor-request-panel {
+    margin-bottom: 17px;
+    padding: 20px;
+    border: 1px solid #f3d9ad;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #fffaf0, var(--surface) 80%);
+}
+
+.mentor-request-locked {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.mentor-request-locked .field-hint {
+    flex: 1 1 240px;
+    margin: 0;
+    color: var(--muted);
+    font-size: .74rem;
+    line-height: 1.5;
+}
+
+.mentor-request-tools {
+    margin-top: 12px;
+}
+
+.mentor-request-filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+    margin: 10px 0 14px;
+}
+
+.mentor-request-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mentor-request-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+}
+
+.mentor-request-info {
+    min-width: 0;
+    flex: 1 1 220px;
+    display: grid;
+    gap: 3px;
+}
+
+.mentor-request-info strong {
+    font-size: .9rem;
+}
+
+.mentor-request-info span {
+    color: var(--muted);
+    font-size: .68rem;
+    font-weight: 600;
+}
+
+.mentor-request-courses {
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: .68rem;
+    line-height: 1.5;
+}
+
+.mentor-request-action {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    width: 180px;
+    flex-shrink: 0;
+}
+
+.mentor-request-course-select {
+    font-size: .72rem;
+    padding: 8px 9px;
+}
+
+.mentor-request-btn {
+    padding: 9px 12px;
+    border: 0;
+    border-radius: 9px;
+    background: var(--primary);
+    color: white;
+    font-size: .72rem;
+    font-weight: 800;
+    transition: background-color .15s ease;
+}
+
+.mentor-request-btn:hover:not(:disabled) {
+    background: var(--primary-dark);
+}
+
+.mentor-request-btn:disabled {
+    background: #cfdbd5;
+    color: #6b7a74;
+    cursor: not-allowed;
+}
+
+.mentor-request-subhead {
+    margin: 18px 0 9px;
+    font-size: .82rem;
+}
+
+.mentor-request-status {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.mentor-request-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    font-size: .74rem;
+}
+
+.mentor-request-row > span:first-child {
+    flex: 1;
+    min-width: 0;
+}
+
+.request-status {
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: .6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.request-status.pending {
+    background: #fff3d6;
+    color: #a9792a;
+}
+
+.request-status.accepted {
+    background: #e6f6ed;
+    color: #166443;
+}
+
+.request-status.declined {
+    background: #fdecec;
+    color: #a13c3c;
+}
+
+.request-cancel {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 6px 10px;
+    color: #a13c3c;
+    font-size: .64rem;
+    font-weight: 800;
+}
+
+@media (max-width: 560px) {
+    .mentor-request-filters { grid-template-columns: 1fr; }
+    .mentor-request-action { width: 100%; }
+}
+
+[data-theme="dark"] .mentor-request-panel,
+[data-theme="dark"] .mentor-request-card,
+[data-theme="dark"] .mentor-request-row {
+    background: #22281c;
+    border-color: #4a3f28;
+}
+
+
+/* ===== Home page: Free vs Premium plans ===== */
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 22px;
+    max-width: 880px;
+    margin: 0 auto;
+}
+
+.pricing-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 30px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow-small);
+}
+
+.pricing-card.featured {
+    border: 2px solid #e0953f;
+    background: linear-gradient(160deg, #fffaf0, var(--surface) 70%);
+    box-shadow: 0 20px 50px rgba(224, 149, 63, .18);
+}
+
+.pricing-ribbon {
+    position: absolute;
+    top: -13px;
+    left: 30px;
+    padding: 6px 13px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #f5c451, #e0953f);
+    color: #4a3410;
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.pricing-card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.pricing-tier {
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: -.03em;
+}
+
+.pricing-price {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+.pricing-card.featured .pricing-price {
+    color: #c57f2e;
+}
+
+.pricing-price small {
+    display: block;
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: .6rem;
+    font-weight: 600;
+    text-align: right;
+}
+
+.pricing-desc {
+    margin-bottom: 18px;
+    color: var(--muted);
+    font-size: .82rem;
+    line-height: 1.6;
+}
+
+.pricing-features {
+    list-style: none;
+    margin: 0 0 22px;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+    flex: 1;
+}
+
+.pricing-features li {
+    position: relative;
+    padding-left: 28px;
+    color: var(--text);
+    font-size: .82rem;
+    line-height: 1.45;
+}
+
+.pricing-features li::before {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 19px;
+    height: 19px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: .7rem;
+    font-weight: 800;
+}
+
+.pricing-features li.yes::before {
+    content: "\2713";
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.pricing-features li.no {
+    color: var(--muted);
+    opacity: .7;
+}
+
+.pricing-features li.no::before {
+    content: "\2715";
+    background: #f0eef0;
+    color: #9a9a9a;
+}
+
+.pricing-btn {
+    width: 100%;
+    text-align: center;
+}
+
+@media (max-width: 760px) {
+    .pricing-grid { grid-template-columns: 1fr; }
+}
+
+[data-theme="dark"] .pricing-card.featured {
+    background: #22281c;
+}
+
+[data-theme="dark"] .pricing-features li.no::before {
+    background: #2a2a2a;
+}
+
+
+/* =====================================================================
+   UI SIMPLIFICATION LAYER
+   Same concept (palette, Pip, rounded cards) — calmer spacing, smaller
+   headings, quieter panels so no page feels crowded or confusing.
+   Appended last so it wins the cascade; changes no ids or JS hooks.
+   ===================================================================== */
+
+:root {
+    --radius: 16px;
+    --shadow: 0 10px 30px rgba(15, 55, 42, .06);
+    --shadow-small: 0 3px 12px rgba(15, 55, 42, .05);
+    --gutter: 24px;
+}
+
+/* ---- Softer, more consistent section rhythm on the home page ---- */
+.section {
+    padding: 64px var(--gutter);
+}
+
+.section-heading {
+    margin: 0 auto 36px;
+}
+
+.section-heading h2,
+.feature-copy h2,
+.cta-card h2 {
+    font-size: clamp(1.7rem, 3.2vw, 2.4rem);
+    margin: 10px 0;
+}
+
+.hero-container {
+    min-height: auto;
+    padding: 64px var(--gutter);
+    gap: 48px;
+}
+
+.hero h1 {
+    font-size: clamp(2.6rem, 5vw, 4rem);
+    margin-bottom: 18px;
+}
+
+.hero-text {
+    font-size: .96rem;
+    line-height: 1.7;
+}
+
+.steps-grid {
+    gap: 14px;
+}
+
+.step-card {
+    min-height: auto;
+    padding: 22px;
+}
+
+.step-icon {
+    margin-bottom: 18px;
+}
+
+.feature-container {
+    padding: 72px var(--gutter);
+    gap: 48px;
+}
+
+.cta-section {
+    padding: 56px var(--gutter);
+}
+
+.cta-card {
+    padding: 40px;
+    border-radius: var(--radius);
+}
+
+/* ---- Auth page: calmer intro, no giant heading ---- */
+.auth-page {
+    gap: 56px;
+    padding: 48px var(--gutter);
+    align-items: start;
+}
+
+.auth-intro h1 {
+    font-size: clamp(2.2rem, 4vw, 3rem);
+    margin: 24px 0 16px;
+}
+
+.back-home {
+    margin-bottom: 36px;
+}
+
+.auth-card {
+    padding: 26px;
+}
+
+/* ---- Profile page: tighter single column ---- */
+.profile-page-container {
+    padding: 36px var(--gutter) 56px;
+}
+
+.profile-card {
+    padding: 24px;
+}
+
+.form-group {
+    margin-bottom: 13px;
+}
+
+/* =====================================================================
+   DASHBOARD — the biggest simplification.
+   Turn the stack of loud bordered boxes into one calm column: lighter
+   panels, smaller headings, drop heavy per-panel shadows, consistent gaps.
+   ===================================================================== */
+
+.dashboard-container {
+    max-width: 920px;
+    padding: 36px var(--gutter) 56px;
+}
+
+/* Uniform vertical rhythm between every dashboard panel */
+.network-area > section,
+.network-area > .filter-section,
+.network-area > .dashboard-header {
+    margin-bottom: 18px;
+}
+
+.dashboard-header {
+    align-items: center;
+    margin-bottom: 22px;
+}
+
+.dashboard-header h1 {
+    font-size: 1.7rem;
+    margin-top: 0;
+}
+
+.dashboard-header p {
+    font-size: .82rem;
+    margin-top: 6px;
+    max-width: 460px;
+}
+
+/* Shared quiet panel look for every dashboard section */
+.assigned-mentor-panel,
+.mentor-request-panel,
+.daily-updates-panel,
+.admin-panel,
+.filter-section {
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: none;
+}
+
+/* Keep the assigned-mentor + premium panels gently tinted, but softer */
+.assigned-mentor-panel {
+    background: linear-gradient(135deg, #f4fbf7, var(--surface) 70%);
+    border-color: #d7ebe0;
+}
+
+.mentor-request-panel {
+    background: linear-gradient(135deg, #fffbf3, var(--surface) 70%);
+    border-color: #efdcbc;
+}
+
+/* Smaller, calmer panel headings */
+.assignment-heading h2,
+.admin-panel-heading h2 {
+    font-size: 1rem;
+    margin-top: 0;
+}
+
+.assignment-heading {
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.daily-updates-panel .field-hint,
+.mentor-request-panel .field-hint {
+    margin-bottom: 12px;
+}
+
+/* Buddy list: lighter cards, one clear column */
+.buddy-card {
+    padding: 18px;
+    border-radius: var(--radius);
+    box-shadow: none;
+}
+
+.buddy-card:hover {
+    border-color: var(--primary);
+}
+
+/* Filter sits directly above the list as a simple control, not a loud box */
+.filter-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-items: end;
+}
+
+.filter-section label {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+}
+
+/* ---- Home pricing + feature cards: a touch lighter ---- */
+.pricing-card {
+    padding: 26px;
+}
+
+.pricing-grid {
+    gap: 18px;
+}
+
+/* ---- Buttons: unify size so action rows look tidy ---- */
+.dashboard-header-actions .secondary-btn,
+.dashboard-header-actions .upgrade-btn,
+.dashboard-header-actions .pip-cta {
+    padding: 9px 14px;
+    font-size: .8rem;
+}
+
+/* ---- Responsive: collapse multi-column controls cleanly ---- */
+@media (max-width: 720px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+    }
+    .dashboard-header-actions {
+        width: 100%;
+    }
+    .filter-section {
+        grid-template-columns: 1fr;
+    }
+    .auth-page,
+    .hero-container,
+    .feature-container {
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+}
+
+/* ---- Dark theme: keep the softened panels consistent ---- */
+[data-theme="dark"] .assigned-mentor-panel,
+[data-theme="dark"] .mentor-request-panel,
+[data-theme="dark"] .daily-updates-panel,
+[data-theme="dark"] .admin-panel,
+[data-theme="dark"] .filter-section,
+[data-theme="dark"] .buddy-card {
+    background: var(--surface);
+    border-color: var(--border);
+}

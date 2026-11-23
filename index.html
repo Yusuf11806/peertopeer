@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=pip-oauth-1">
+    <link rel="stylesheet" href="style.css?v=ui-simplify-1">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
 </head>
@@ -29,6 +29,7 @@
         <nav class="desktop-nav">
             <a href="#" onclick="navigateToSection('how-it-works'); return false;">How It Works</a>
             <a href="#" onclick="navigateToSection('features'); return false;">Features</a>
+            <a href="#" onclick="navigateToSection('pricing'); return false;">Plans</a>
             <a href="#" onclick="navigateToSection('about'); return false;">About</a>
         </nav>
 
@@ -372,6 +373,58 @@
     </section>
 
 
+    <section class="section" id="pricing">
+
+        <div class="section-heading">
+            <span class="section-label">PLANS</span>
+            <h2>Free to start.<br>More with Premium.</h2>
+            <p>Everyone can find study friends and chat with Pip for icebreakers. Premium adds AI study tools and lets you choose your own mentor.</p>
+        </div>
+
+        <div class="pricing-grid">
+
+            <div class="pricing-card">
+                <div class="pricing-card-head">
+                    <span class="pricing-tier">Free</span>
+                    <span class="pricing-price">$0<small>/forever</small></span>
+                </div>
+                <p class="pricing-desc">Everything you need to connect and study together.</p>
+                <ul class="pricing-features">
+                    <li class="yes">Create a student profile</li>
+                    <li class="yes">Smart study-friend matching</li>
+                    <li class="yes">Message peers and your assigned mentor</li>
+                    <li class="yes">Daily college progress updates</li>
+                    <li class="yes">Pip icebreakers to start conversations</li>
+                    <li class="no">AI note summaries</li>
+                    <li class="no">AI-generated quizzes</li>
+                    <li class="no">Request a specific mentor by subject</li>
+                </ul>
+                <button class="secondary-btn pricing-btn" onclick="showAuth('register')">Get started free</button>
+            </div>
+
+            <div class="pricing-card featured">
+                <span class="pricing-ribbon">Most knowledge</span>
+                <div class="pricing-card-head">
+                    <span class="pricing-tier">Premium</span>
+                    <span class="pricing-price">Upgrade<small>anytime</small></span>
+                </div>
+                <p class="pricing-desc">Everything in Free, plus Pip's AI study tools and mentor choice.</p>
+                <ul class="pricing-features">
+                    <li class="yes">Everything in Free</li>
+                    <li class="yes"><strong>Pip summarizes</strong> your notes and material</li>
+                    <li class="yes"><strong>Pip generates quizzes</strong> to test yourself</li>
+                    <li class="yes"><strong>Request a specific mentor</strong> by subject</li>
+                    <li class="yes">Expand your knowledge beyond your assigned mentor</li>
+                    <li class="yes">Priority to grow your peer network</li>
+                </ul>
+                <button class="primary-btn pricing-btn" onclick="showAuth('register')">Go Premium</button>
+            </div>
+
+        </div>
+
+    </section>
+
+
     
 
     <section class="cta-section" id="about">
@@ -618,6 +671,15 @@
                 <button type="button" class="secondary-btn" onclick="showDashboard()">&larr; Back to dashboard</button>
             </div>
 
+            <div class="plan-panel" id="planPanel">
+                <div class="plan-panel-head">
+                    <strong>Subscription</strong>
+                    <span class="plan-badge" id="profilePlanBadge2">Free plan</span>
+                </div>
+                <p class="field-hint">Premium unlocks Pip's study tools: summarize your material and auto-generate quizzes.</p>
+                <button type="button" class="upgrade-btn" onclick="togglePremium()">Upgrade to Premium</button>
+            </div>
+
             <form id="profileForm">
 
                 <div class="form-group">
@@ -631,14 +693,14 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="profSubject">Core Objective</label>
+                    <label for="profSubject">Main subject</label>
                     <select id="profCourseCategory" class="form-control course-category" required aria-label="Course category"></select>
                     <input id="profSubject" class="form-control" list="profileCourseOptions" required placeholder="Choose a category first" disabled>
-                    <small class="field-hint">You can type any course from your program. <a href="https://curriculum.binus.ac.id/" target="_blank" rel="noopener noreferrer">Browse the official BINUS course catalog</a>.</small>
+                    <small class="field-hint">Pick a category, then your course. <a href="https://curriculum.binus.ac.id/" target="_blank" rel="noopener noreferrer">BINUS course catalog</a>.</small>
                 </div>
 
                 <div class="form-group">
-                    <label for="profSkill">Top Expertise</label>
+                    <label for="profSkill">Your strengths</label>
                     <input type="text" id="profSkill" class="form-control" required placeholder="e.g. Java, UI Design">
                 </div>
 
@@ -661,7 +723,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="profBio">About &amp; Context</label>
+                    <label for="profBio">About you</label>
                     <textarea id="profBio" class="form-control" rows="3" required placeholder="Tell peers what you want to learn..."></textarea>
                 </div>
 
@@ -704,22 +766,19 @@
 
                 <div>
 
-                    <span class="section-label">
-                        STUDY BUDDY NETWORK
-                    </span>
-
                     <h1>
-                        Find a study friend.
+                        Find a study friend
                     </h1>
 
                     <p>
-                        Your BINUS mentor is also a student. Find other students to study with in the list below.
+                        Students who complete a profile appear below. Your BINUS mentor is shown first.
                     </p>
 
                 </div>
 
                 <div class="dashboard-header-actions">
                     <span class="plan-badge" id="dashboardPlanBadge">Free plan</span>
+                    <button type="button" class="upgrade-btn" onclick="togglePremium()">Upgrade to Premium</button>
                     <button type="button" class="secondary-btn" onclick="showProfile()">My Profile</button>
                     <button type="button" class="primary-btn pip-cta" onclick="openPipChat()">
                         <img src="pip.svg" alt="" width="22" height="22"> Ask Pip
@@ -732,7 +791,6 @@
             <section id="adminPanel" class="admin-panel is-hidden">
                 <div class="admin-panel-heading">
                     <div>
-                        <span class="section-label">BINUS ADMIN</span>
                         <h2>Mentor assignments</h2>
                     </div>
                     <p>Designate student mentors, then assign one to a student.</p>
@@ -763,8 +821,7 @@
 
                 <div class="assignment-heading">
                     <div>
-                        <span class="section-label">BINUS SUPPORT</span>
-                        <h2>Your BINUS-assigned student mentor</h2>
+                        <h2>Your student mentor</h2>
                     </div>
                     <span class="assignment-status" id="assignedMentorStatus">Not assigned yet</span>
                 </div>
@@ -775,9 +832,46 @@
 
             </section>
 
+
+            <section id="mentorRequestPanel" class="mentor-request-panel">
+                <div class="assignment-heading">
+                    <div>
+                        <h2>Request a specific mentor</h2>
+                    </div>
+                    <span class="plan-badge" id="mentorRequestBadge">Premium</span>
+                </div>
+
+                <div id="mentorRequestLocked" class="mentor-request-locked">
+                    <p class="field-hint">Choose a mentor by the subject they teach to expand your knowledge. This is a Premium feature.</p>
+                    <button type="button" class="upgrade-btn" onclick="togglePremium()">Upgrade to Premium</button>
+                </div>
+
+                <div id="mentorRequestTools" class="mentor-request-tools is-hidden">
+                    <p class="field-hint">Filter mentors by the subject you want to learn, then send a request. BINUS reviews and assigns your mentor.</p>
+                    <div class="mentor-request-filters">
+                        <select id="mentorRequestCategory" class="form-control course-category" aria-label="Mentor subject category"></select>
+                        <input id="mentorRequestSubject" class="form-control" placeholder="Search by course name (optional)" aria-label="Search mentors by course">
+                    </div>
+                    <div id="mentorRequestList" class="mentor-request-list"></div>
+                    <h3 class="mentor-request-subhead">Your requests</h3>
+                    <div id="mentorRequestStatus" class="mentor-request-status"></div>
+                </div>
+            </section>
+
+
+            <section id="mentorInboxPanel" class="mentor-request-panel is-hidden">
+                <div class="assignment-heading">
+                    <div>
+                        <h2>Students requesting you</h2>
+                    </div>
+                </div>
+                <p class="field-hint">Students have asked to learn a subject from you. Accept to become their mentor, or decline.</p>
+                <div id="mentorInboxList" class="mentor-request-status"></div>
+            </section>
+
             <section class="daily-updates-panel">
                 <div class="assignment-heading">
-                    <div><span class="section-label">DAILY CHECK-IN</span><h2>College progress</h2></div>
+                    <div><h2>Daily progress</h2></div>
                 </div>
                 <p class="field-hint">Share what you worked on today with your assigned mentor. Add a photo of your notes or coursework.</p>
                 <form id="dailyUpdateForm" class="daily-update-form">
@@ -1040,7 +1134,7 @@
 </dialog>
 
 
-<script src="script.js?v=mentor-categories-2"></script>
+<script src="script.js?v=ui-simplify-1"></script>
 
 </body>
 </html>

@@ -106,10 +106,11 @@ function readLocalData() {
             users: Array.isArray(data.users) ? data.users : [],
             assignments: Array.isArray(data.assignments) ? data.assignments : [],
             messages: Array.isArray(data.messages) ? data.messages : [],
-            dailyUpdates: Array.isArray(data.dailyUpdates) ? data.dailyUpdates : []
+            dailyUpdates: Array.isArray(data.dailyUpdates) ? data.dailyUpdates : [],
+            mentorRequests: Array.isArray(data.mentorRequests) ? data.mentorRequests : []
         };
     } catch {
-        return { users: [], assignments: [], messages: [] };
+        return { users: [], assignments: [], messages: [], dailyUpdates: [], mentorRequests: [] };
     }
 }
 
@@ -163,6 +164,12 @@ function localRequireAdmin(data) {
     return user;
 }
 
+function localRequirePremium(data) {
+    const user = localRequireUser(data);
+    if (user.plan !== 'premium') throw new Error('This is a Premium feature. Upgrade to request a specific mentor.');
+    return user;
+}
+
 async function api(path, options = {}) {
     const method = (options.method || 'GET').toUpperCase();
     const url = new URL(`/api/${path.replace(/^\//, '')}`, window.location.origin);
@@ -179,6 +186,13 @@ async function api(path, options = {}) {
     if (url.pathname === '/api/auth/logout' && method === 'POST') {
         localStorage.removeItem(LOCAL_SESSION_KEY);
         return { ok: true };
+    }
+    if (url.pathname === '/api/account/plan' && method === 'POST') {
+        const user = localRequireUser(data);
+        const plan = body.plan === 'premium' ? 'premium' : 'free';
+        user.plan = plan;
+        writeLocalData(data);
+        return { user: localPublicUser(user, data) };
     }
     if (url.pathname === '/api/auth/register' && method === 'POST') {
         const email = String(body.email || '').trim().toLowerCase();
@@ -260,10 +274,117 @@ async function api(path, options = {}) {
         const user = localRequireUser(data);
         return { users: data.users.filter(item => item.hasProfile && item.id !== user.id).map(profileUser) };
     }
+    if (url.pathname === '/api/mentors' && method === 'GET') {
+        const user = localRequirePremium(data);
+        const subject = String(url.searchParams.get('subject') || '').trim().toLowerCase();
+        const category = String(url.searchParams.get('category') || '').trim();
+        const mentors = data.users
+            .filter(item => item.isMentor && item.id !== user.id && Array.isArray(item.mentorCourses) && item.mentorCourses.length)
+            .filter(item => {
+                if (!subject && !category) return true;
+                return item.mentorCourses.some(entry => {
+                    const course = String(entry.course || '');
+                    const matchSubject = !subject || course.toLowerCase().includes(subject);
+                    const matchCategory = !category || categoryForCourse(course) === category;
+                    return matchSubject && matchCategory;
+                });
+            })
+            .map(item => ({
+                id: item.id,
+                name: item.profile?.name || 'Student mentor',
+                nim: item.nim || '',
+                major: item.profile?.major || '',
+                mentorCourses: item.mentorCourses,
+                alreadyRequested: data.mentorRequests.some(request => request.studentId === user.id && request.mentorId === item.id && request.status === 'pending'),
+                isAssigned: data.assignments.some(assignment => assignment.studentId === user.id && assignment.mentorId === item.id)
+            }));
+        return { mentors };
+    }
+    if (url.pathname === '/api/mentor-requests' && method === 'GET') {
+        const user = localRequireUser(data);
+        const requests = data.mentorRequests
+            .filter(request => request.studentId === user.id)
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .map(request => ({
+                ...request,
+                mentorName: data.users.find(item => item.id === request.mentorId)?.profile?.name || 'Student mentor'
+            }));
+        return { requests };
+    }
+    if (url.pathname === '/api/mentor-requests' && method === 'POST') {
+        const user = localRequirePremium(data);
+        const mentorId = Number(body.mentorId);
+        const subject = String(body.subject || '').trim();
+        const mentor = data.users.find(item => item.id === mentorId && item.isMentor);
+        if (!mentor) throw new Error('Choose a valid student mentor.');
+        if (!subject) throw new Error('Tell us which subject you want to learn.');
+        if (data.mentorRequests.some(request => request.studentId === user.id && request.mentorId === mentorId && request.status === 'pending')) {
+            throw new Error('You already have a pending request for this mentor.');
+        }
+        data.mentorRequests.push({
+            id: Date.now() + Math.floor(Math.random() * 1000),
+            studentId: user.id, mentorId, subject, status: 'pending', createdAt: Date.now()
+        });
+        writeLocalData(data);
+        return { ok: true };
+    }
+    if (url.pathname === '/api/mentor-requests/cancel' && method === 'POST') {
+        const user = localRequireUser(data);
+        const requestId = Number(body.requestId);
+        const index = data.mentorRequests.findIndex(request => request.id === requestId && request.studentId === user.id);
+        if (index >= 0) {
+            data.mentorRequests.splice(index, 1);
+            writeLocalData(data);
+        }
+        return { ok: true };
+    }
+    if (url.pathname === '/api/mentor/requests' && method === 'GET') {
+        const user = localRequireUser(data);
+        if (!user.isMentor) throw new Error('Only student mentors can view incoming requests.');
+        const requests = data.mentorRequests
+            .filter(request => request.mentorId === user.id)
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .map(request => {
+                const student = data.users.find(item => item.id === request.studentId);
+                return {
+                    ...request,
+                    studentName: student?.profile?.name || 'Student',
+                    studentNim: student?.nim || '',
+                    studentMajor: student?.profile?.major || ''
+                };
+            });
+        return { requests };
+    }
+    if (url.pathname === '/api/mentor/requests/respond' && method === 'POST') {
+        const user = localRequireUser(data);
+        if (!user.isMentor) throw new Error('Only student mentors can respond to requests.');
+        if (!user.nim) throw new Error('Add your NIM before accepting students.');
+        const requestId = Number(body.requestId);
+        const action = String(body.action || '');
+        const request = data.mentorRequests.find(item => item.id === requestId && item.mentorId === user.id);
+        if (!request) throw new Error('Request not found.');
+        if (request.status !== 'pending') throw new Error('This request was already handled.');
+        if (action === 'accept') {
+            request.status = 'accepted';
+            const assignmentIndex = data.assignments.findIndex(item => item.studentId === request.studentId);
+            if (assignmentIndex >= 0) data.assignments[assignmentIndex].mentorId = user.id;
+            else data.assignments.push({ studentId: request.studentId, mentorId: user.id });
+        } else if (action === 'decline') {
+            request.status = 'declined';
+        } else {
+            throw new Error('Choose to accept or decline.');
+        }
+        writeLocalData(data);
+        return { ok: true };
+    }
     if (url.pathname === '/api/admin/users' && method === 'GET') {
         localRequireAdmin(data);
         return { users: data.users.filter(user => !user.isAdmin).map(user => ({
-            ...profileUser(user), assignedMentorId: data.assignments.find(item => item.studentId === user.id)?.mentorId || null
+            ...profileUser(user),
+            assignedMentorId: data.assignments.find(item => item.studentId === user.id)?.mentorId || null,
+            pendingRequests: data.mentorRequests
+                .filter(request => request.studentId === user.id && request.status === 'pending')
+                .map(request => ({ mentorId: request.mentorId, subject: request.subject }))
         })) };
     }
     if (url.pathname === '/api/admin/mentors' && method === 'POST') {
@@ -287,6 +408,9 @@ async function api(path, options = {}) {
             if (studentId === mentorId || !mentor || !data.users.some(user => user.id === studentId && !user.isAdmin)) throw new Error('Choose a registered student and a designated mentor with a NIM.');
             if (assignmentIndex >= 0) data.assignments[assignmentIndex].mentorId = mentorId;
             else data.assignments.push({ studentId, mentorId });
+            data.mentorRequests
+                .filter(request => request.studentId === studentId && request.mentorId === mentorId && request.status === 'pending')
+                .forEach(request => { request.status = 'accepted'; });
         }
         writeLocalData(data);
         return { ok: true };
@@ -417,6 +541,8 @@ async function showDashboard() {
         updateMatrixUI();
         await refreshStudents();
         await refreshDailyUpdates();
+        await renderMentorRequestPanel();
+        await renderMentorInbox();
         await renderAdminPanel();
         maybeShowPipToast();
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -448,10 +574,9 @@ async function showProfile() {
 
 function updatePlanBadges() {
     const premium = currentUser?.plan === 'premium';
-    const label = premium ? 'Premium plan' : 'Free plan';
     const dash = document.getElementById('dashboardPlanBadge');
     if (dash) {
-        dash.textContent = label;
+        dash.textContent = premium ? 'Premium plan' : 'Free plan';
         dash.classList.toggle('premium', premium);
     }
     const prof = document.getElementById('profilePlanBadge');
@@ -459,6 +584,12 @@ function updatePlanBadges() {
         prof.textContent = premium ? 'PREMIUM PLAN' : 'FREE PLAN';
         prof.classList.toggle('premium', premium);
     }
+    const prof2 = document.getElementById('profilePlanBadge2');
+    if (prof2) {
+        prof2.textContent = premium ? 'Premium plan' : 'Free plan';
+        prof2.classList.toggle('premium', premium);
+    }
+    updateUpgradeButtons();
 }
 
 function populateProfile(user) {
@@ -700,6 +831,237 @@ function renderAssignedMentor() {
     content.append(button);
 }
 
+/* ===== Premium: request a specific mentor by subject ===== */
+let mentorRequestInit = false;
+
+function initMentorRequestPanel() {
+    if (mentorRequestInit) return;
+    mentorRequestInit = true;
+    const category = document.getElementById('mentorRequestCategory');
+    const subject = document.getElementById('mentorRequestSubject');
+    if (!category || !subject) return;
+    setCourseCategoryOptions(category, true);
+    category.addEventListener('change', () => refreshMentorRequestList().catch(showError));
+    let timer = null;
+    subject.addEventListener('input', () => {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => refreshMentorRequestList().catch(showError), 250);
+    });
+}
+
+async function renderMentorRequestPanel() {
+    const panel = document.getElementById('mentorRequestPanel');
+    if (!panel) return;
+    const locked = document.getElementById('mentorRequestLocked');
+    const tools = document.getElementById('mentorRequestTools');
+    const premium = isPremium();
+    locked.classList.toggle('is-hidden', premium);
+    tools.classList.toggle('is-hidden', !premium);
+    if (!premium) return;
+    initMentorRequestPanel();
+    await refreshMentorRequestList();
+    await refreshMentorRequestStatus();
+}
+
+async function refreshMentorRequestList() {
+    const list = document.getElementById('mentorRequestList');
+    if (!list) return;
+    const category = document.getElementById('mentorRequestCategory').value;
+    const subject = document.getElementById('mentorRequestSubject').value.trim();
+    list.replaceChildren();
+    try {
+        const params = new URLSearchParams();
+        if (category) params.set('category', category);
+        if (subject) params.set('subject', subject);
+        const { mentors } = await api(`mentors?${params.toString()}`);
+        if (!mentors.length) {
+            const empty = document.createElement('p');
+            empty.className = 'field-hint';
+            empty.textContent = 'No mentors match that subject yet. Try another category or clear the search.';
+            list.append(empty);
+            return;
+        }
+        mentors.forEach(mentor => {
+            const card = document.createElement('div');
+            card.className = 'mentor-request-card';
+            const info = document.createElement('div');
+            info.className = 'mentor-request-info';
+            const name = document.createElement('strong');
+            name.textContent = mentor.name;
+            const meta = document.createElement('span');
+            meta.textContent = `${mentor.major || 'BINUS student'}${mentor.nim ? ` · ${mentor.nim}` : ''}`;
+            const courses = document.createElement('p');
+            courses.className = 'mentor-request-courses';
+            courses.textContent = 'Mentors: ' + mentor.mentorCourses.map(entry => `${entry.course} (Grade ${entry.grade})`).join(', ');
+            info.append(name, meta, courses);
+
+            const action = document.createElement('div');
+            action.className = 'mentor-request-action';
+            const select = document.createElement('select');
+            select.className = 'form-control mentor-request-course-select';
+            select.setAttribute('aria-label', `Subject to learn from ${mentor.name}`);
+            mentor.mentorCourses.forEach(entry => {
+                const option = document.createElement('option');
+                option.value = entry.course;
+                option.textContent = entry.course;
+                select.append(option);
+            });
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'mentor-request-btn';
+            if (mentor.isAssigned) {
+                button.textContent = 'Assigned';
+                button.disabled = true;
+            } else if (mentor.alreadyRequested) {
+                button.textContent = 'Requested';
+                button.disabled = true;
+            } else {
+                button.textContent = 'Request mentor';
+                button.addEventListener('click', () => requestMentor(mentor.id, select.value, button));
+            }
+            action.append(select, button);
+            card.append(info, action);
+            list.append(card);
+        });
+    } catch (error) {
+        const msg = document.createElement('p');
+        msg.className = 'field-hint';
+        msg.textContent = error.message;
+        list.append(msg);
+    }
+}
+
+async function requestMentor(mentorId, subject, button) {
+    button.disabled = true;
+    try {
+        await api('mentor-requests', { method: 'POST', body: JSON.stringify({ mentorId, subject }) });
+        button.textContent = 'Requested';
+        notifyPip(`Request sent! BINUS will review your mentor request for ${subject}.`);
+        await refreshMentorRequestStatus();
+    } catch (error) {
+        button.disabled = false;
+        showError(error);
+    }
+}
+
+async function refreshMentorRequestStatus() {
+    const container = document.getElementById('mentorRequestStatus');
+    if (!container) return;
+    container.replaceChildren();
+    try {
+        const { requests } = await api('mentor-requests');
+        if (!requests.length) {
+            const empty = document.createElement('p');
+            empty.className = 'field-hint';
+            empty.textContent = 'You have not requested a mentor yet.';
+            container.append(empty);
+            return;
+        }
+        requests.forEach(request => {
+            const row = document.createElement('div');
+            row.className = 'mentor-request-row';
+            const label = document.createElement('span');
+            label.innerHTML = `<strong>${escapeHTML(request.mentorName)}</strong> — ${escapeHTML(request.subject)}`;
+            const status = document.createElement('span');
+            status.className = `request-status ${request.status}`;
+            status.textContent = request.status === 'accepted' ? 'Accepted'
+                : request.status === 'declined' ? 'Declined' : 'Pending';
+            row.append(label, status);
+            if (request.status === 'pending') {
+                const cancel = document.createElement('button');
+                cancel.type = 'button';
+                cancel.className = 'request-cancel';
+                cancel.textContent = 'Cancel';
+                cancel.addEventListener('click', async () => {
+                    try {
+                        await api('mentor-requests/cancel', { method: 'POST', body: JSON.stringify({ requestId: request.id }) });
+                        await refreshMentorRequestStatus();
+                        await refreshMentorRequestList();
+                    } catch (error) { showError(error); }
+                });
+                row.append(cancel);
+            }
+            container.append(row);
+        });
+    } catch (error) {
+        const msg = document.createElement('p');
+        msg.className = 'field-hint';
+        msg.textContent = error.message;
+        container.append(msg);
+    }
+}
+
+/* ===== Mentor side: accept / decline incoming requests ===== */
+async function renderMentorInbox() {
+    const panel = document.getElementById('mentorInboxPanel');
+    if (!panel) return;
+    if (!currentUser?.isMentor) {
+        panel.classList.add('is-hidden');
+        return;
+    }
+    panel.classList.remove('is-hidden');
+    const list = document.getElementById('mentorInboxList');
+    list.replaceChildren();
+    try {
+        const { requests } = await api('mentor/requests');
+        const pending = requests.filter(request => request.status === 'pending');
+        const handled = requests.filter(request => request.status !== 'pending');
+        if (!pending.length && !handled.length) {
+            const empty = document.createElement('p');
+            empty.className = 'field-hint';
+            empty.textContent = 'No students have requested you yet.';
+            list.append(empty);
+            return;
+        }
+        pending.forEach(request => {
+            const row = document.createElement('div');
+            row.className = 'mentor-request-row';
+            const label = document.createElement('span');
+            label.innerHTML = `<strong>${escapeHTML(request.studentName)}</strong> wants to learn <strong>${escapeHTML(request.subject)}</strong>${request.studentMajor ? ` · ${escapeHTML(request.studentMajor)}` : ''}`;
+            const accept = document.createElement('button');
+            accept.type = 'button';
+            accept.className = 'mentor-request-btn';
+            accept.textContent = 'Accept';
+            accept.addEventListener('click', () => respondToMentorRequest(request.id, 'accept'));
+            const decline = document.createElement('button');
+            decline.type = 'button';
+            decline.className = 'request-cancel';
+            decline.textContent = 'Decline';
+            decline.addEventListener('click', () => respondToMentorRequest(request.id, 'decline'));
+            row.append(label, accept, decline);
+            list.append(row);
+        });
+        handled.forEach(request => {
+            const row = document.createElement('div');
+            row.className = 'mentor-request-row';
+            const label = document.createElement('span');
+            label.innerHTML = `<strong>${escapeHTML(request.studentName)}</strong> — ${escapeHTML(request.subject)}`;
+            const status = document.createElement('span');
+            status.className = `request-status ${request.status}`;
+            status.textContent = request.status === 'accepted' ? 'Accepted' : 'Declined';
+            row.append(label, status);
+            list.append(row);
+        });
+    } catch (error) {
+        const msg = document.createElement('p');
+        msg.className = 'field-hint';
+        msg.textContent = error.message;
+        list.append(msg);
+    }
+}
+
+async function respondToMentorRequest(requestId, action) {
+    try {
+        await api('mentor/requests/respond', { method: 'POST', body: JSON.stringify({ requestId, action }) });
+        if (action === 'accept') {
+            currentUser = (await api('auth/me')).user;
+            renderAssignedMentor();
+        }
+        await renderMentorInbox();
+        await renderChatInboxIfOpen();
+    } catch (error) { showError(error); }
+}
+
 function fillAccountSelect(select, users, placeholder) {
     select.replaceChildren();
     const first = document.createElement('option');
@@ -891,7 +1253,11 @@ function openPipChat() {
     chatWidget.style.display = 'flex';
     chatWidgetBody.replaceChildren();
     const { category, questions } = pipIcebreakersFor();
-    appendPipBubble(`Woof! I'm Pip. I only do one thing: help you break the ice. Here are a few openers for ${category}. Tap one to copy it, or type "more" for others.`, questions.slice(0, 3));
+    const premiumNote = isPremium()
+        ? ' You are Premium, so I can also summarize notes and make quizzes — type "summarize" or "quiz".'
+        : '';
+    appendPipBubble(`Woof! I'm Pip. I help you break the ice with study friends. Here are a few openers for ${category}. Tap one to copy it, or type "more" for others.${premiumNote}`, questions.slice(0, 3));
+    appendPipStudyMenu();
 }
 
 function renderPipEmptyState() {
@@ -1258,6 +1624,19 @@ chatWidgetForm.addEventListener('submit', async event => {
 function respondAsPip(message) {
     const text = message.toLowerCase();
     const subject = currentUser?.profile?.subject;
+    if (/summari[sz]e|summary|quiz|test me|study|notes|material/.test(text)) {
+        appendPipStudyMenu();
+        return;
+    }
+    if (/premium|upgrade|subscription|plan/.test(text)) {
+        if (isPremium()) {
+            appendPipBubble('You are already Premium — paste your material below to summarize or quiz it.');
+        } else {
+            appendPipBubble('Premium unlocks my study tools (summaries and quizzes).');
+        }
+        appendPipStudyMenu();
+        return;
+    }
     if (/more|another|again|next|yes|yeah|sure|ok/.test(text)) {
         appendPipBubble('Here you go:', [pipPick(subject), pipPick(subject)]);
         return;
@@ -1273,6 +1652,345 @@ function respondAsPip(message) {
     // Default: treat their message as a topic and offer openers for it.
     const { category } = pipIcebreakersFor(message);
     appendPipBubble(`Good topic! Here are a couple of ${category} openers you could send:`, [pipPick(message), pipPick(message)]);
+}
+
+/* ============================================================
+   PREMIUM PIP — on-device study tools (A1, no API, no key)
+   Summarize pasted material + generate a quiz, all in-browser.
+   ============================================================ */
+
+const PIP_STOPWORDS = new Set(('a an the and or but if then else of to in on at by for with as is are was were be been being ' +
+    'this that these those it its it\'s they them their there here we you your i me my he she his her from into over under ' +
+    'can could should would will shall may might must do does did done have has had not no yes so such than too very ' +
+    'about above after again against all am any because before below between both during each few more most other some ' +
+    'only own same up down out off which who whom what when where why how also however thus hence therefore ').split(/\s+/));
+
+function splitSentences(text) {
+    return String(text || '')
+        .replace(/\s+/g, ' ')
+        .match(/[^.!?]+[.!?]+|[^.!?]+$/g)
+        ?.map(s => s.trim())
+        .filter(s => s.split(/\s+/).length >= 4) || [];
+}
+
+function wordFrequencies(text) {
+    const freq = {};
+    (String(text).toLowerCase().match(/[a-z][a-z'-]{2,}/g) || []).forEach(word => {
+        if (PIP_STOPWORDS.has(word)) return;
+        freq[word] = (freq[word] || 0) + 1;
+    });
+    return freq;
+}
+
+// Extractive summary: rank sentences by keyword weight + position, keep the top N in original order.
+function summarizeText(text, maxSentences = 4) {
+    const sentences = splitSentences(text);
+    if (sentences.length <= maxSentences) return sentences;
+    const freq = wordFrequencies(text);
+    const max = Math.max(1, ...Object.values(freq));
+    const scored = sentences.map((sentence, index) => {
+        const words = sentence.toLowerCase().match(/[a-z][a-z'-]{2,}/g) || [];
+        let score = words.reduce((sum, word) => sum + (freq[word] || 0) / max, 0);
+        score = score / Math.sqrt(words.length || 1);        // normalise for length
+        if (index === 0) score *= 1.6;                        // intro sentences matter
+        if (index === sentences.length - 1) score *= 1.15;    // conclusions matter
+        return { sentence, index, score };
+    });
+    return scored
+        .sort((a, b) => b.score - a.score)
+        .slice(0, maxSentences)
+        .sort((a, b) => a.index - b.index)
+        .map(item => item.sentence);
+}
+
+function keyTermsFrom(text, count = 12) {
+    const freq = wordFrequencies(text);
+    return Object.entries(freq)
+        .filter(([word, n]) => n >= 1 && word.length >= 4)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, count)
+        .map(([word]) => word);
+}
+
+function shuffle(list) {
+    const copy = [...list];
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+}
+
+function titleCase(word) {
+    return word ? word.charAt(0).toUpperCase() + word.slice(1) : word;
+}
+
+// Build a quiz from the text: fill-in-the-blank (multiple choice) + true/false.
+function generateQuiz(text, maxQuestions = 5) {
+    const sentences = splitSentences(text);
+    const terms = keyTermsFrom(text, 16);
+    if (sentences.length < 2 || terms.length < 4) return [];
+    const questions = [];
+    const usedTerms = new Set();
+
+    // Fill-in-the-blank multiple-choice questions.
+    for (const sentence of sentences) {
+        if (questions.length >= maxQuestions - 1) break;
+        const words = sentence.match(/[A-Za-z][A-Za-z'-]{3,}/g) || [];
+        const answer = words.find(word => {
+            const lower = word.toLowerCase();
+            return terms.includes(lower) && !usedTerms.has(lower);
+        });
+        if (!answer) continue;
+        usedTerms.add(answer.toLowerCase());
+        const distractors = shuffle(terms.filter(term => term !== answer.toLowerCase()))
+            .slice(0, 3)
+            .map(titleCase);
+        if (distractors.length < 3) continue;
+        const options = shuffle([titleCase(answer), ...distractors]);
+        const prompt = sentence.replace(new RegExp(`\\b${answer}\\b`), '_____');
+        questions.push({ type: 'mcq', prompt, options, answer: titleCase(answer) });
+    }
+
+    // One true/false question (flip a key term for the "false" version).
+    const base = sentences.find(s => (s.match(/[A-Za-z][A-Za-z'-]{3,}/g) || []).some(w => terms.includes(w.toLowerCase())));
+    if (base && questions.length < maxQuestions) {
+        const makeFalse = Math.random() < 0.5;
+        let statement = base;
+        if (makeFalse) {
+            const words = base.match(/[A-Za-z][A-Za-z'-]{3,}/g) || [];
+            const target = words.find(w => terms.includes(w.toLowerCase()));
+            const swap = shuffle(terms.filter(t => t !== target?.toLowerCase()))[0];
+            if (target && swap) statement = base.replace(new RegExp(`\\b${target}\\b`), titleCase(swap));
+        }
+        questions.push({ type: 'tf', prompt: statement, answer: makeFalse ? 'False' : 'True' });
+    }
+
+    return questions.slice(0, maxQuestions);
+}
+
+/* ---------- Premium gating + upgrade (demo) ---------- */
+
+function isPremium() {
+    return currentUser?.plan === 'premium';
+}
+
+async function togglePremium() {
+    if (!currentUser) { showAuth('login'); return; }
+    const next = isPremium() ? 'free' : 'premium';
+    if (next === 'free' && !window.confirm('Switch back to the Free plan? You will lose access to Pip study tools.')) return;
+    try {
+        const { user } = await api('account/plan', { method: 'POST', body: JSON.stringify({ plan: next }) });
+        currentUser = user;
+        updatePlanBadges();
+        updateUpgradeButtons();
+        if (dashboardPage.style.display === 'block') await renderMentorRequestPanel();
+        if (next === 'premium') notifyPip('You are Premium now! Request a mentor by subject, and ask Pip to summarize notes or make quizzes.');
+    } catch (error) { showError(error); }
+}
+
+function updateUpgradeButtons() {
+    document.querySelectorAll('.upgrade-btn').forEach(button => {
+        button.textContent = isPremium() ? 'Switch to Free' : 'Upgrade to Premium';
+        button.classList.toggle('is-premium', isPremium());
+    });
+}
+
+/* ---------- Premium Pip chat: study tools ---------- */
+
+function appendPipStudyMenu() {
+    const row = document.createElement('div');
+    row.className = 'pip-row';
+    const avatar = document.createElement('img');
+    avatar.src = 'pip.svg';
+    avatar.alt = 'Pip';
+    const column = document.createElement('div');
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble pip';
+
+    if (isPremium()) {
+        bubble.textContent = 'Premium unlocked! Paste your study material and I can summarize it or build you a quiz.';
+        column.append(bubble);
+        column.append(buildStudyToolForm());
+    } else {
+        bubble.textContent = 'Summarizing notes and generating quizzes are Premium features. Upgrade and I will study with you!';
+        column.append(bubble);
+        const wrap = document.createElement('div');
+        wrap.className = 'pip-suggestions';
+        const upgrade = document.createElement('button');
+        upgrade.type = 'button';
+        upgrade.className = 'pip-suggestion upgrade-btn';
+        upgrade.textContent = 'Upgrade to Premium';
+        upgrade.addEventListener('click', togglePremium);
+        wrap.append(upgrade);
+        column.append(wrap);
+    }
+    row.append(avatar, column);
+    chatWidgetBody.append(row);
+    chatWidgetBody.scrollTop = chatWidgetBody.scrollHeight;
+}
+
+function buildStudyToolForm() {
+    const form = document.createElement('div');
+    form.className = 'pip-study-tool';
+    const area = document.createElement('textarea');
+    area.className = 'pip-study-input';
+    area.rows = 5;
+    area.placeholder = 'Paste your notes, a chapter, or an article here...';
+    const fileLabel = document.createElement('label');
+    fileLabel.className = 'pip-study-file';
+    fileLabel.textContent = 'Or load a .txt file';
+    const file = document.createElement('input');
+    file.type = 'file';
+    file.accept = '.txt,text/plain';
+    file.addEventListener('change', async () => {
+        const chosen = file.files[0];
+        if (chosen) area.value = await chosen.text();
+    });
+    fileLabel.append(file);
+
+    const actions = document.createElement('div');
+    actions.className = 'pip-study-actions';
+    const summarizeBtn = document.createElement('button');
+    summarizeBtn.type = 'button';
+    summarizeBtn.className = 'pip-study-btn';
+    summarizeBtn.textContent = 'Summarize';
+    summarizeBtn.addEventListener('click', () => runPipSummary(area.value));
+    const quizBtn = document.createElement('button');
+    quizBtn.type = 'button';
+    quizBtn.className = 'pip-study-btn alt';
+    quizBtn.textContent = 'Make a quiz';
+    quizBtn.addEventListener('click', () => runPipQuiz(area.value));
+    actions.append(summarizeBtn, quizBtn);
+
+    form.append(area, fileLabel, actions);
+    return form;
+}
+
+function runPipSummary(text) {
+    if (!isPremium()) { appendPipStudyMenu(); return; }
+    const clean = String(text || '').trim();
+    if (clean.split(/\s+/).length < 25) {
+        appendPipBubble('Give me a bit more text (at least a short paragraph) and I will summarize the key points.');
+        return;
+    }
+    const points = summarizeText(clean, 4);
+    const bubble = document.createElement('div');
+    bubble.className = 'pip-row';
+    const avatar = document.createElement('img');
+    avatar.src = 'pip.svg';
+    avatar.alt = 'Pip';
+    const column = document.createElement('div');
+    const head = document.createElement('div');
+    head.className = 'chat-bubble pip';
+    head.textContent = 'Here are the key points:';
+    const list = document.createElement('ul');
+    list.className = 'pip-summary';
+    points.forEach(point => {
+        const li = document.createElement('li');
+        li.textContent = point;
+        list.append(li);
+    });
+    const terms = keyTermsFrom(clean, 6);
+    column.append(head, list);
+    if (terms.length) {
+        const tags = document.createElement('div');
+        tags.className = 'pip-terms';
+        tags.textContent = 'Key terms: ' + terms.map(titleCase).join(', ');
+        column.append(tags);
+    }
+    bubble.append(avatar, column);
+    chatWidgetBody.append(bubble);
+    chatWidgetBody.scrollTop = chatWidgetBody.scrollHeight;
+}
+
+function runPipQuiz(text) {
+    if (!isPremium()) { appendPipStudyMenu(); return; }
+    const clean = String(text || '').trim();
+    if (clean.split(/\s+/).length < 40) {
+        appendPipBubble('I need a bit more material to build a fair quiz — paste a few paragraphs and try again.');
+        return;
+    }
+    const quiz = generateQuiz(clean, 5);
+    if (!quiz.length) {
+        appendPipBubble('I could not find enough distinct terms to build a quiz from that. Try a longer or more detailed passage.');
+        return;
+    }
+    renderPipQuiz(quiz);
+}
+
+function renderPipQuiz(quiz) {
+    const row = document.createElement('div');
+    row.className = 'pip-row';
+    const avatar = document.createElement('img');
+    avatar.src = 'pip.svg';
+    avatar.alt = 'Pip';
+    const column = document.createElement('div');
+    const intro = document.createElement('div');
+    intro.className = 'chat-bubble pip';
+    intro.textContent = `Quiz time! ${quiz.length} question${quiz.length > 1 ? 's' : ''}. Pick an answer for each, then submit.`;
+    column.append(intro);
+
+    const card = document.createElement('form');
+    card.className = 'pip-quiz';
+    quiz.forEach((question, qi) => {
+        const block = document.createElement('fieldset');
+        block.className = 'pip-quiz-q';
+        const legend = document.createElement('legend');
+        legend.textContent = `${qi + 1}. ${question.prompt}`;
+        block.append(legend);
+        const options = question.type === 'tf' ? ['True', 'False'] : question.options;
+        options.forEach(option => {
+            const label = document.createElement('label');
+            label.className = 'pip-quiz-opt';
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.name = `q${qi}`;
+            input.value = option;
+            const span = document.createElement('span');
+            span.textContent = option;
+            label.append(input, span);
+            block.append(label);
+        });
+        card.append(block);
+    });
+
+    const submit = document.createElement('button');
+    submit.type = 'submit';
+    submit.className = 'pip-study-btn';
+    submit.textContent = 'Submit answers';
+    const result = document.createElement('p');
+    result.className = 'pip-quiz-result';
+    card.append(submit, result);
+
+    card.addEventListener('submit', event => {
+        event.preventDefault();
+        let correct = 0;
+        quiz.forEach((question, qi) => {
+            const picked = card.querySelector(`input[name="q${qi}"]:checked`);
+            const block = card.querySelectorAll('.pip-quiz-q')[qi];
+            block.classList.remove('right', 'wrong');
+            if (picked && picked.value === question.answer) {
+                correct++;
+                block.classList.add('right');
+            } else {
+                block.classList.add('wrong');
+                const legend = block.querySelector('legend');
+                if (!legend.querySelector('.pip-quiz-answer')) {
+                    const ans = document.createElement('span');
+                    ans.className = 'pip-quiz-answer';
+                    ans.textContent = ` — answer: ${question.answer}`;
+                    legend.append(ans);
+                }
+            }
+        });
+        result.textContent = `You scored ${correct} / ${quiz.length}.`;
+    });
+
+    column.append(card);
+    row.append(avatar, column);
+    chatWidgetBody.append(row);
+    chatWidgetBody.scrollTop = chatWidgetBody.scrollHeight;
 }
 
 document.getElementById('supportForm')?.addEventListener('submit', event => {
