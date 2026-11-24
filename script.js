@@ -126,6 +126,7 @@ function localPublicUser(user, data = readLocalData(), includeAssignedMentor = t
         isMentor: Boolean(user.isMentor), isAdmin: Boolean(user.isAdmin),
         plan: user.plan === 'premium' ? 'premium' : 'free',
         mentorCourses: Array.isArray(user.mentorCourses) ? user.mentorCourses : [],
+        mentorApplication: user.mentorApplication || { status: 'none', courses: [], note: '' },
         hasProfile: Boolean(user.hasProfile), profile: user.profile || null,
         assignedMentor: includeAssignedMentor && assignment
             ? localPublicUser(data.users.find(item => item.id === assignment.mentorId), data, false)
@@ -377,6 +378,67 @@ async function api(path, options = {}) {
         writeLocalData(data);
         return { ok: true };
     }
+    if (url.pathname === '/api/mentor/apply' && method === 'POST') {
+        const user = localRequireUser(data);
+        if (user.isMentor) throw new Error('You are already an approved mentor.');
+        const courses = Array.isArray(body.courses) ? body.courses : [];
+        const cleaned = courses
+            .map(item => ({ course: String(item.course || '').trim(), grade: String(item.grade || '').trim() }))
+            .filter(item => item.course && item.grade);
+        if (!cleaned.length) throw new Error('Add at least one subject and your grade in it.');
+        user.mentorApplication = {
+            status: 'pending',
+            courses: cleaned,
+            note: '',
+            updatedAt: Date.now()
+        };
+        writeLocalData(data);
+        return { user: localPublicUser(user, data) };
+    }
+    if (url.pathname === '/api/mentor/application' && method === 'GET') {
+        const user = localRequireUser(data);
+        return { application: user.mentorApplication || { status: 'none', courses: [], note: '' } };
+    }
+    if (url.pathname === '/api/admin/mentor-applications' && method === 'GET') {
+        localRequireAdmin(data);
+        const applications = data.users
+            .filter(user => user.mentorApplication && ['pending', 'changes_requested'].includes(user.mentorApplication.status))
+            .map(user => ({
+                userId: user.id,
+                email: user.email,
+                nim: user.nim,
+                name: user.profile?.name || '',
+                major: user.profile?.major || '',
+                status: user.mentorApplication.status,
+                note: user.mentorApplication.note || '',
+                courses: user.mentorApplication.courses || [],
+                updatedAt: user.mentorApplication.updatedAt || 0
+            }))
+            .sort((a, b) => a.updatedAt - b.updatedAt);
+        return { applications };
+    }
+    if (url.pathname === '/api/admin/mentor-applications/review' && method === 'POST') {
+        localRequireAdmin(data);
+        const target = data.users.find(user => user.id === Number(body.userId) && !user.isAdmin);
+        if (!target || !target.mentorApplication) throw new Error('Mentor application not found.');
+        const action = String(body.action || '');
+        const note = String(body.note || '').trim();
+        if (action === 'approve') {
+            target.isMentor = true;
+            target.mentorCourses = target.mentorApplication.courses || [];
+            target.mentorApplication = { ...target.mentorApplication, status: 'approved', note: '', updatedAt: Date.now() };
+        } else if (action === 'reject') {
+            target.isMentor = false;
+            target.mentorApplication = { ...target.mentorApplication, status: 'rejected', note, updatedAt: Date.now() };
+        } else if (action === 'request_changes') {
+            if (!note) throw new Error('Write an instruction for the applicant.');
+            target.mentorApplication = { ...target.mentorApplication, status: 'changes_requested', note, updatedAt: Date.now() };
+        } else {
+            throw new Error('Choose approve, reject, or request changes.');
+        }
+        writeLocalData(data);
+        return { ok: true };
+    }
     if (url.pathname === '/api/admin/users' && method === 'GET') {
         localRequireAdmin(data);
         return { users: data.users.filter(user => !user.isAdmin).map(user => ({
@@ -563,6 +625,7 @@ async function showProfile() {
         updateHeaderUI();
         updatePlanBadges();
         populateProfile(currentUser);
+        renderMentorApplyPanel();
         updateMatrixUI();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
@@ -570,6 +633,113 @@ async function showProfile() {
         showHome();
         showError(error);
     }
+}
+
+/* ===== Profile: become-a-mentor application ===== */
+function addMentorApplyRow(course = '', grade = '') {
+    const rows = document.getElementById('mentorApplyRows');
+    const row = document.createElement('div');
+    row.className = 'mentor-apply-row';
+    const courseInput = document.createElement('input');
+    courseInput.className = 'form-control mentor-apply-course';
+    courseInput.setAttribute('list', 'binusCourseOptions');
+    courseInput.placeholder = 'Subject you can mentor';
+    courseInput.value = course;
+    const gradeSelect = document.createElement('select');
+    gradeSelect.className = 'form-control mentor-apply-grade';
+    gradeSelect.setAttribute('aria-label', 'Your grade in this subject');
+    ['', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C'].forEach(value => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value || 'Your grade';
+        gradeSelect.append(option);
+    });
+    gradeSelect.value = grade;
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'request-cancel';
+    remove.textContent = 'Remove';
+    remove.addEventListener('click', () => row.remove());
+    row.append(courseInput, gradeSelect, remove);
+    rows.append(row);
+}
+
+function renderMentorApplyPanel() {
+    const panel = document.getElementById('mentorApplyPanel');
+    if (!panel) return;
+    const badge = document.getElementById('mentorStatusBadge');
+    const intro = document.getElementById('mentorApplyIntro');
+    const note = document.getElementById('mentorApplyNote');
+    const form = document.getElementById('mentorApplyForm');
+    const submit = document.getElementById('mentorApplySubmit');
+    const rows = document.getElementById('mentorApplyRows');
+    const addBtn = document.getElementById('mentorApplyAddCourse');
+    const application = currentUser?.mentorApplication || { status: 'none', courses: [], note: '' };
+
+    note.classList.add('is-hidden');
+    note.textContent = '';
+
+    // Already an approved mentor.
+    if (currentUser?.isMentor) {
+        badge.textContent = 'Mentor';
+        badge.className = 'role-badge approved';
+        intro.textContent = 'You are an approved mentor. Students can request you by subject, and you review their requests from your dashboard.';
+        form.classList.add('is-hidden');
+        return;
+    }
+
+    form.classList.remove('is-hidden');
+    rows.replaceChildren();
+
+    if (application.status === 'pending') {
+        badge.textContent = 'Pending review';
+        badge.className = 'role-badge pending';
+        intro.textContent = 'Your mentor application is awaiting BINUS admin review. You can update and resubmit it below.';
+        submit.textContent = 'Update application';
+    } else if (application.status === 'changes_requested') {
+        badge.textContent = 'Changes requested';
+        badge.className = 'role-badge warn';
+        intro.textContent = 'The admin asked for changes. Update your subjects below and resubmit.';
+        note.classList.remove('is-hidden');
+        note.textContent = `Admin note: ${application.note}`;
+        submit.textContent = 'Resubmit application';
+    } else if (application.status === 'rejected') {
+        badge.textContent = 'Not approved';
+        badge.className = 'role-badge rejected';
+        intro.textContent = 'Your previous application was not approved. You can apply again below.';
+        if (application.note) {
+            note.classList.remove('is-hidden');
+            note.textContent = `Admin note: ${application.note}`;
+        }
+        submit.textContent = 'Apply again';
+    } else {
+        badge.textContent = 'Student';
+        badge.className = 'role-badge';
+        intro.textContent = 'Want to help other students? Apply to become a mentor. The BINUS admin reviews every application.';
+        submit.textContent = 'Apply to be a mentor';
+    }
+
+    const existing = application.courses && application.courses.length ? application.courses : [{ course: '', grade: '' }];
+    existing.forEach(item => addMentorApplyRow(item.course, item.grade));
+    addBtn.onclick = () => addMentorApplyRow();
+}
+
+async function submitMentorApplication() {
+    const rows = [...document.querySelectorAll('#mentorApplyRows .mentor-apply-row')];
+    const courses = rows.map(row => ({
+        course: row.querySelector('.mentor-apply-course').value.trim(),
+        grade: row.querySelector('.mentor-apply-grade').value.trim()
+    })).filter(item => item.course && item.grade);
+    if (!courses.length) {
+        alert('Add at least one subject and your grade in it.');
+        return;
+    }
+    try {
+        const { user } = await api('mentor/apply', { method: 'POST', body: JSON.stringify({ courses }) });
+        currentUser = user;
+        renderMentorApplyPanel();
+        notifyPip('Your mentor application was sent to the BINUS admin for review.');
+    } catch (error) { showError(error); }
 }
 
 function updatePlanBadges() {
@@ -1104,6 +1274,91 @@ async function renderAdminPanel() {
         const status = document.getElementById('adminStatus');
         status.textContent = error.message;
     }
+    await renderAdminApplications();
+}
+
+async function renderAdminApplications() {
+    const panel = document.getElementById('adminApplicationsPanel');
+    const list = document.getElementById('adminApplicationsList');
+    if (!panel || !list) return;
+    panel.classList.toggle('is-hidden', !currentUser?.isAdmin);
+    if (!currentUser?.isAdmin) return;
+    list.replaceChildren();
+    try {
+        const { applications } = await api('admin/mentor-applications');
+        if (!applications.length) {
+            const empty = document.createElement('p');
+            empty.className = 'field-hint';
+            empty.textContent = 'No pending mentor applications right now.';
+            list.append(empty);
+            return;
+        }
+        applications.forEach(application => {
+            const card = document.createElement('div');
+            card.className = 'application-card';
+
+            const head = document.createElement('div');
+            head.className = 'application-head';
+            const who = document.createElement('div');
+            who.innerHTML = `<strong>${escapeHTML(application.name || application.email)}</strong><span>${escapeHTML(application.email)}${application.nim ? ` · ${escapeHTML(application.nim)}` : ''}</span>`;
+            const badge = document.createElement('span');
+            badge.className = `role-badge ${application.status === 'changes_requested' ? 'warn' : 'pending'}`;
+            badge.textContent = application.status === 'changes_requested' ? 'Changes requested' : 'Pending';
+            head.append(who, badge);
+
+            const courses = document.createElement('p');
+            courses.className = 'application-courses';
+            courses.textContent = 'Wants to mentor: ' + application.courses.map(item => `${item.course} (Grade ${item.grade})`).join(', ');
+
+            const actions = document.createElement('div');
+            actions.className = 'application-actions';
+            const noteInput = document.createElement('input');
+            noteInput.className = 'form-control application-note';
+            noteInput.placeholder = 'Instruction for the applicant (for "Request changes")';
+
+            const approve = document.createElement('button');
+            approve.type = 'button';
+            approve.className = 'mentor-request-btn';
+            approve.textContent = 'Approve';
+            approve.addEventListener('click', () => reviewMentorApplication(application.userId, 'approve', ''));
+
+            const changes = document.createElement('button');
+            changes.type = 'button';
+            changes.className = 'secondary-btn';
+            changes.textContent = 'Request changes';
+            changes.addEventListener('click', () => reviewMentorApplication(application.userId, 'request_changes', noteInput.value));
+
+            const reject = document.createElement('button');
+            reject.type = 'button';
+            reject.className = 'request-cancel';
+            reject.textContent = 'Reject';
+            reject.addEventListener('click', () => reviewMentorApplication(application.userId, 'reject', noteInput.value));
+
+            const btnRow = document.createElement('div');
+            btnRow.className = 'application-btn-row';
+            btnRow.append(approve, changes, reject);
+            actions.append(noteInput, btnRow);
+
+            card.append(head, courses, actions);
+            list.append(card);
+        });
+    } catch (error) {
+        const msg = document.createElement('p');
+        msg.className = 'field-hint';
+        msg.textContent = error.message;
+        list.append(msg);
+    }
+}
+
+async function reviewMentorApplication(userId, action, note) {
+    if (action === 'request_changes' && !note.trim()) {
+        alert('Write an instruction for the applicant before requesting changes.');
+        return;
+    }
+    try {
+        await api('admin/mentor-applications/review', { method: 'POST', body: JSON.stringify({ userId, action, note }) });
+        await renderAdminPanel();
+    } catch (error) { showError(error); }
 }
 
 async function openChatWidget(peerId, peerName) {
@@ -2002,8 +2257,56 @@ document.getElementById('supportForm')?.addEventListener('submit', event => {
     document.getElementById('supportStatus').textContent = 'Your email app should open with your message ready to send.';
 });
 
+async function seedDummyAccounts() {
+    const data = readLocalData();
+    if (localStorage.getItem('p2p_seeded') === '1') return;
+
+    async function ensureUser(spec) {
+        if (data.users.some(user => user.email === spec.email)) return;
+        const passwordData = await hashLocalPassword(spec.password);
+        data.users.push({
+            id: Date.now() + Math.floor(Math.random() * 100000),
+            email: spec.email,
+            nim: spec.nim,
+            passwordSalt: passwordData.salt,
+            passwordHash: passwordData.hash,
+            isMentor: Boolean(spec.isMentor),
+            mentorCourses: spec.mentorCourses || [],
+            isAdmin: spec.email === LOCAL_ADMIN_EMAIL,
+            plan: spec.plan || 'free',
+            hasProfile: Boolean(spec.profile),
+            profile: spec.profile || null,
+            mentorApplication: spec.mentorApplication || { status: 'none', courses: [], note: '' }
+        });
+    }
+
+    await ensureUser({
+        email: LOCAL_ADMIN_EMAIL, nim: 'ADMIN001', password: 'Admin123',
+        profile: { name: 'BINUS Admin', major: 'Administration', subject: 'Java Programming', skillHave: 'Operations', studyMode: 'Onsite', location: 'Admin Office', bio: 'Platform administrator.', schedule: [] }
+    });
+    await ensureUser({
+        email: 'mentor@binus.ac.id', nim: '1800000001', password: 'Mentor123',
+        isMentor: true,
+        mentorCourses: [{ course: 'Java Programming', grade: 'A' }, { course: 'Web Programming', grade: 'A-' }],
+        profile: { name: 'Dummy Mentor', major: 'Computer Science', subject: 'Java Programming', skillHave: 'Java, Web Dev', studyMode: 'Online', roomLink: 'https://meet.example.com/mentor', bio: 'Approved student mentor for demo.', schedule: ['Mon-Morning', 'Wed-Afternoon'] },
+        mentorApplication: { status: 'approved', courses: [{ course: 'Java Programming', grade: 'A' }], note: '', updatedAt: Date.now() }
+    });
+    await ensureUser({
+        email: 'student@binus.ac.id', nim: '2500000001', password: 'Student123',
+        profile: { name: 'Dummy Student', major: 'Information Systems', subject: 'Data Structures', skillHave: 'Python', studyMode: 'Online', roomLink: 'https://meet.example.com/student', bio: 'Regular student for demo.', schedule: ['Tue-Morning'] }
+    });
+
+    writeLocalData(data);
+    localStorage.setItem('p2p_seeded', '1');
+}
+
 async function boot() {
     setTheme(localStorage.getItem('p2p_theme') === 'dark' ? 'dark' : 'light');
+    try {
+        await seedDummyAccounts();
+    } catch (error) {
+        console.warn('Dummy account seeding skipped:', error.message);
+    }
     try {
         currentUser = (await api('auth/me')).user;
         await showDashboard();
