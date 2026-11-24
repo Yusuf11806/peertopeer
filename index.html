@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=ui-simplify-1">
+    <link rel="stylesheet" href="style.css?v=mentor-role-1">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
 </head>
@@ -680,6 +680,22 @@
                 <button type="button" class="upgrade-btn" onclick="togglePremium()">Upgrade to Premium</button>
             </div>
 
+            <div class="mentor-apply-panel" id="mentorApplyPanel">
+                <div class="plan-panel-head">
+                    <strong>Mentor status</strong>
+                    <span class="role-badge" id="mentorStatusBadge">Student</span>
+                </div>
+                <p class="field-hint" id="mentorApplyIntro">Want to help other students? Apply to become a mentor. The BINUS admin reviews every application.</p>
+
+                <div id="mentorApplyNote" class="mentor-apply-note is-hidden"></div>
+
+                <div id="mentorApplyForm" class="mentor-apply-form">
+                    <div id="mentorApplyRows" class="mentor-apply-rows"></div>
+                    <button type="button" class="link-btn" id="mentorApplyAddCourse">+ Add another subject</button>
+                    <button type="button" class="upgrade-btn mentor-apply-submit" id="mentorApplySubmit" onclick="submitMentorApplication()">Apply to be a mentor</button>
+                </div>
+            </div>
+
             <form id="profileForm">
 
                 <div class="form-group">
@@ -814,6 +830,17 @@
                     </form>
                 </div>
                 <p id="adminStatus" class="admin-status" role="status" aria-live="polite"></p>
+            </section>
+
+
+            <section id="adminApplicationsPanel" class="admin-panel is-hidden">
+                <div class="admin-panel-heading">
+                    <div>
+                        <h2>Mentor applications</h2>
+                    </div>
+                    <p>Approve, reject, or send an instruction back to the applicant.</p>
+                </div>
+                <div id="adminApplicationsList" class="admin-applications-list"></div>
             </section>
 
 
@@ -1134,7 +1161,7 @@
 </dialog>
 
 
-<script src="script.js?v=ui-simplify-1"></script>
+<script src="script.js?v=mentor-role-1"></script>
 
 </body>
 </html>

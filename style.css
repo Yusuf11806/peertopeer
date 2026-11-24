@@ -3625,3 +3625,281 @@ html[data-theme="dark"] .support-form textarea {
     background: var(--surface);
     border-color: var(--border);
 }
+
+
+/* =====================================================================
+   MENTOR ROLE: application panel, role badges, admin review
+   ===================================================================== */
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: #eef2f0;
+    color: #5b6b65;
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.role-badge.approved {
+    background: #e6f6ed;
+    color: #166443;
+}
+
+.role-badge.pending {
+    background: #fff3d6;
+    color: #a9792a;
+}
+
+.role-badge.warn {
+    background: #fff0e0;
+    color: #b4701a;
+}
+
+.role-badge.rejected {
+    background: #fdecec;
+    color: #a13c3c;
+}
+
+/* Become-a-mentor panel on the profile page */
+.mentor-apply-panel {
+    margin-bottom: 20px;
+    padding: 16px;
+    border: 1px solid #d7ebe0;
+    border-radius: var(--radius);
+    background: linear-gradient(135deg, #f4fbf7, var(--surface) 75%);
+}
+
+.mentor-apply-panel .field-hint {
+    margin: 8px 0 12px;
+    color: var(--muted);
+    font-size: .74rem;
+    line-height: 1.5;
+}
+
+.mentor-apply-note {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #fff6e6;
+    border: 1px solid #f0d9ad;
+    color: #7a5a1e;
+    font-size: .72rem;
+    line-height: 1.5;
+}
+
+.mentor-apply-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.mentor-apply-row {
+    display: grid;
+    grid-template-columns: 1fr 110px auto;
+    gap: 7px;
+    align-items: center;
+}
+
+.link-btn {
+    border: 0;
+    background: none;
+    color: var(--primary);
+    font-size: .74rem;
+    font-weight: 800;
+    padding: 2px 0;
+}
+
+.mentor-apply-submit {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    text-align: center;
+}
+
+/* Admin mentor-applications list */
+.admin-applications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.application-card {
+    padding: 15px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+}
+
+.application-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.application-head strong {
+    display: block;
+    font-size: .9rem;
+}
+
+.application-head span {
+    display: block;
+    color: var(--muted);
+    font-size: .68rem;
+    margin-top: 2px;
+}
+
+.application-courses {
+    margin-bottom: 11px;
+    color: var(--muted);
+    font-size: .74rem;
+    line-height: 1.5;
+}
+
+.application-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.application-note {
+    font-size: .74rem;
+}
+
+.application-btn-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.application-btn-row button {
+    flex: 1;
+    min-width: 96px;
+}
+
+@media (max-width: 560px) {
+    .mentor-apply-row { grid-template-columns: 1fr 100px; }
+    .mentor-apply-row .request-cancel { grid-column: 2; }
+}
+
+/* =====================================================================
+   UI POLISH (easier to look at): gentle, readable, consistent
+   ===================================================================== */
+
+body {
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+/* Softer, larger text in body copy for comfort */
+.card-subtitle,
+.field-hint {
+    line-height: 1.6;
+}
+
+/* Inputs: roomier tap targets and clearer focus */
+.form-control,
+.admin-select,
+.filter-select {
+    padding: 11px 13px;
+    border-radius: 10px;
+    font-size: .85rem;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.form-control:focus,
+.admin-select:focus,
+.filter-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 127, 204, .12);
+    outline: none;
+}
+
+/* Buttons: consistent, comfortable, gentle hover lift */
+.full-btn,
+.primary-btn,
+.secondary-btn,
+.upgrade-btn,
+.mentor-request-btn,
+.admin-action-btn,
+.pip-study-btn {
+    border-radius: 10px;
+    transition: transform .12s ease, box-shadow .15s ease, background-color .15s ease;
+}
+
+.full-btn:hover,
+.primary-btn:hover,
+.upgrade-btn:hover,
+.mentor-request-btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Cards and panels: unified soft corners and calm borders */
+.card,
+.buddy-card,
+.assigned-mentor-panel,
+.mentor-request-panel,
+.daily-updates-panel,
+.admin-panel,
+.application-card,
+.pricing-card {
+    border-radius: var(--radius);
+}
+
+/* Headings: a little more breathing room and tighter tracking */
+h1, h2, h3 {
+    letter-spacing: -.02em;
+}
+
+.dashboard-header h1 {
+    line-height: 1.15;
+}
+
+/* Section headings on the dashboard: consistent size + spacing */
+.assignment-heading h2,
+.admin-panel-heading h2 {
+    font-size: 1.05rem;
+    line-height: 1.25;
+}
+
+/* Gentle divider rhythm: give each dashboard panel a touch more air */
+.network-area > section,
+.network-area > .filter-section {
+    margin-bottom: 16px;
+}
+
+/* Make the buddy list breathe */
+.buddy-card {
+    padding: 18px 20px;
+    gap: 18px;
+}
+
+/* Role badge sits nicely next to headings */
+.plan-panel-head {
+    align-items: center;
+}
+
+[data-theme="dark"] .mentor-apply-panel {
+    background: var(--surface);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .mentor-apply-note {
+    background: #2a2213;
+    border-color: #4a3f28;
+    color: #f3e4c6;
+}
+
+[data-theme="dark"] .application-card {
+    background: var(--surface);
+    border-color: var(--border);
+}
